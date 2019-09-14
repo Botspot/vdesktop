@@ -1,0 +1,215 @@
+#!/bin/bash
+DIRECTORY="$(dirname $0)"
+#echo "Script located in:"
+#echo $DIRECTORY
+if [ -z "$1" ]; then
+  echo "You did not specify what to boot."
+  lsblk -o PATH,VENDOR,SIZE
+  if [ $(id -u) -ne 0 ]; then
+    echo "And you did not run this script as root user."
+  fi
+  echo ""
+  echo "I can boot from an image file:                  sudo vdesktop /home/pi/Downloads/2018-07-09-pi-topOS.img"
+  echo "Or a block device:                              sudo vdesktop /dev/sda"
+  echo "Or the root directory of the virtual desktop:   sudo vdesktop /home/pi/old-raspbian/"
+  exit 0
+elif [ $(id -u) -ne 0 ]; then
+  echo "You did not run this script as root user."
+  exit 0
+fi
+#apt -y install xserver-xephyr systemd-container
+
+REQ_PKG=systemd-container
+REQ_NAME=Systemd-nspawn
+PKG_OK=$(dpkg-query -W --showformat='${Status}\n' "$REQ_PKG"|grep "install ok installed")
+if [ "" == "$PKG_OK" ]; then
+  echo "$REQ_NAME is required but not installed. Install it now? [Y/n]"
+  read yesno
+  if [[ "$yesno" == "y" ]]; then
+    echo "Alright. Installing '$REQ_NAME'."
+    apt --force-yes --yes install "$REQ_PKG"
+  elif [[ "$yesno" == "n" ]]; then
+    exit 0
+  else
+    echo "Alright. Installing '$REQ_NAME'."
+    apt --force-yes --yes install "$REQ_PKG"
+  fi  
+fi
+
+REQ_PKG=xserver-xephyr
+REQ_NAME=Xephyr
+PKG_OK=$(dpkg-query -W --showformat='${Status}\n' "$REQ_PKG"|grep "install ok installed")
+if [ "" == "$PKG_OK" ]; then
+  echo "$REQ_NAME is required but not installed. Install it now? [Y/n]"
+  read yesno
+  if [[ "$yesno" == "y" ]]; then
+    echo "Alright. Installing '$REQ_NAME'."
+    apt-get --force-yes --yes install "$REQ_PKG"
+  elif [[ "$yesno" == "n" ]]; then
+    exit 0
+  else
+    echo "Alright. Installing '$REQ_NAME'."
+    apt-get --force-yes --yes install "$REQ_PKG"
+  fi  
+fi
+
+mntpnt="/mnt/virtualdesktop" #if .img file or block device, this is default mount point
+mkdir "${mntpnt}" &>/dev/null
+umount "${mntpnt}" &>/dev/null
+systemctl unmask  -- -.mount #if user accidentally shutdown the host while guest was running, systemd masks "-.mount" by default. This ensures -.mount is not masked, though it will probably take a reboot to see any effect.
+
+if [ -b "$1" ]; then
+  echo "OK, looks like you specified a /dev location or block device"
+  if [[ "$1" == *[0-9] ]]; then
+    true #echo "You specified the partition number."
+    umount -l "$1"
+  else
+    echo "You did not specify partition number."
+    echo "Would you like to specify one? (y/n) If not, I will try partition 2."
+    read yesno
+    if [[ "$yesno" == "y" ]]; then
+      echo "Alright. Input partiton number. (1-9)"
+      read partnum
+    elif [[ "$yesno" == "n" ]]; then
+      echo "Alright. I will try partition 2"
+      partnum=2
+      if [ -b "$1${partnum}" ]; then
+        true
+      else
+        echo "$1${partnum} does not exist."
+        exit 1
+      fi
+    else
+      echo 'I didn'\''t understand that. Next time type '\''y'\'' or '\''n'\''.'
+      exit 1
+    fi
+  fi
+    rootdev=$(echo "$(findmnt / -fnr)" | awk '{print $2}') #Which block device is mounted to /
+    #echo ""
+    #echo "block device for / is:"
+    #echo "$rootdev"
+    #echo ""
+    
+    #echo "you chose:"
+    #echo $(echo "$(udevadm info -q all -n $1${partnum} | grep 'by-uuid')" | awk '{print $2}'| head -n 1)
+    #echo "root block device:"
+    #echo $(echo "$(udevadm info -q all -n $rootdev | grep 'by-uuid')" | awk '{print $2}'| head -n 1)
+
+    if [[ "$(echo "$(udevadm info -q all -n $1${partnum} | grep 'by-uuid')" | awk '{print $2}'| head -n 1)" == "$(echo "$(udevadm info -q all -n $rootdev | grep 'by-uuid')" | awk '{print $2}'| head -n 1)" ]]; then #if uuids are equal
+      echo "The device you are trying to boot from and your microSD have the same UUID."
+      echo "I can fix the problem by changing the UUID. Do I have your permission? (y/n)"
+      read answer 
+      if [ "$answer" == "y" ]; then
+        echo "Alright, changing the UUID"
+        tune2fs "$1${partnum}" -U random
+      elif [ "$answer" == "n" ]; then
+        echo "OK then, I will not change the UUID."
+      else
+        echo 'I didn'\''t understand that. Next time type '\''y'\'' or '\''n'\''.'
+        exit 0
+      fi
+    fi
+  mount "$1${partnum}" "$mntpnt" -o suid
+elif [[ "$1" == *".img" ]] && [ -f "$1" ]; then
+  echo "OK, looks like you specified an .img file."
+  PART="Linux"
+  MNT="$mntpnt"
+  IMG="$1"
+  if [ "${PART}" = "" ]; then
+    PART="type=83"
+  else
+    PART="$(tr [A-Z] [a-z] <<< "${PART}")"
+    if [ "${PART}" = "w95" ];then
+      PART="type=c"
+    elif [ "${PART}" = "linux" ];then
+      PART="type=83"
+    else
+      usage
+    fi
+  fi
+  
+  INFO="$(sfdisk -d "${IMG}")"
+  START=$(grep "${PART}" <<< "${INFO}" | sed -n 's|^.*start=\s\+\([0-9]\+\).*$|\1|p')
+  SIZE=$(grep "${PART}" <<< "${INFO}" | sed -n 's|^.*size=\s\+\([0-9]\+\).*$|\1|p')
+  LOOP="$(losetup -f --show -o $((${START} * 512)) --sizelimit $((${SIZE} * 512)) "${IMG}")"
+  if [ $? -ne 0 ]; then
+    echo "Unable to create loop device"
+    exit 1
+  fi
+  if [ "${PART}" = "type=c" ]; then
+    dosfsck "${LOOP}"
+  else
+    FS_TYPE=$(blkid "${LOOP}" | sed -n 's|^.*TYPE="\(\S\+\)".*|\1|p')
+    if [ "${FS_TYPE}" = "f2fs" ]; then
+      fsck.f2fs "${LOOP}"
+    else
+      fsck.ext4 -f "${LOOP}"
+    fi
+  fi
+  if [ $? -ne 0 ]; then
+    losetup -d "${LOOP}"
+    echo "Filesystem appears corrupted"
+    exit 1
+  fi
+  mount "${LOOP}" ${MNT}
+  echo ""
+  echo "${IMG} mounted on ${MNT}"
+
+elif [ "$1" == "/" ]; then
+  echo "You cannot boot from Filesystem Root."
+elif [ -d "$1" ]; then
+  echo "OK, looks like you specified a directory"
+  mntpnt=$1
+else
+  echo "No such file or directory. Check spelling and try again."
+  if [[ "$1" == "/dev/"* ]]; then
+    lsblk -o PATH,VENDOR,SIZE
+  fi
+  exit 1
+fi
+
+if [ $mntpnt == "*/" ]; then #ensure there is no trailing slash
+  mntpnt=${mntpnt: :-1}
+fi
+mount -n -o remount,suid,rw "$mntpnt" #remount so root can access it
+
+#sed -i "/exit 0/i\/usr/bin/vncserver-virtual &" "${mntpnt}/etc/rc.local"
+
+if diff "${mntpnt}/etc/machine-id" "/etc/machine-id" > /dev/null
+then
+  echo "Machine IDs are equal, I have to fix this. Is this OK? \(y/n\)"
+  read answer 
+  if [ "$answer" == "y" ]; then
+    echo "Alright, changing the Machine ID."
+    rm -f "${mntpnt}/etc/machine-id"
+    dbus-uuidgen --ensure="${mntpnt}/etc/machine-id"
+    rm "${mntpnt}/var/lib/dbus/machine-id"
+    dbus-uuidgen --ensure="${mntpnt}/var/lib/dbus/machine-id"
+  elif [ "$answer" == "n" ]; then
+    echo "OK then, I will not change the Machine ID."
+    exit 0
+  else
+    echo 'I didn'\''t understand that. Next time type '\''y'\'' or '\''n'\''.'
+    exit 1
+  fi
+fi
+
+echo "Booting in 5 seconds."
+sleep 5
+#mount .profile file in guest to start lxsession before login.
+mount --bind "${DIRECTORY}/profile" "${mntpnt}/etc/profile"
+mount --bind "${DIRECTORY}/rc.local" "${mntpnt}/etc/rc.local"
+#start second X session to interact with guest
+Xephyr -ac -screen 1270x960 -br -terminate -resizeable -reset 2> /dev/null :1 &
+#boot the guest
+printf '\e]12;#0000aa\a' #change cursor color while in guest so user doesn't forget
+systemd-nspawn --machine "virtualdesktop" -D "$mntpnt" -b
+printf '\e]12;#aaa\a' #change cursor color back to lxterminal default
+umount "${mntpnt}/etc/rc.local"
+umount "${mntpnt}/etc/profile"
+exit 0
+
+
+
+
+
