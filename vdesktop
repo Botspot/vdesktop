@@ -194,19 +194,33 @@ then
   fi
 fi
 
+/bin/echo -e "Your cursor color will be \e[34mblue\e[39m until the container is terminated."
 echo "Booting in 5 seconds."
 sleep 5
-#mount .profile file in guest to start lxsession before login.
+#mount .profile and rc.local in guest to start lxsession before login.
 mount --bind "${DIRECTORY}/profile" "${mntpnt}/etc/profile"
 mount --bind "${DIRECTORY}/rc.local" "${mntpnt}/etc/rc.local"
 #start second X session to interact with guest
-Xephyr -ac -screen 1270x960 -br -terminate -resizeable -reset 2> /dev/null :1 &
-#boot the guest
+
+
+#start Xephyr when an additional instance of lxsession is detected.
+INITIAL_X_INSTANCES="$(pgrep lxsession | wc -l)"
+eval 'while [ "$INITIAL_X_INSTANCES" -eq "$(pgrep lxsession | wc -l)" ]; do true; sleep 0.01; done; Xephyr -ac -screen 1270x960 -br -resizeable 2> /dev/null :1' &
+
 printf '\e]12;#0000aa\a' #change cursor color while in guest so user doesn't forget
-systemd-nspawn --machine "virtualdesktop" -D "$mntpnt" -b
+#boot the guest
+systemd-nspawn --machine "virtualdesktop" -bD "$mntpnt"
 printf '\e]12;#aaa\a' #change cursor color back to lxterminal default
+
+#unmount modifications to the guest
 umount "${mntpnt}/etc/rc.local"
 umount "${mntpnt}/etc/profile"
+
+#Sometimes Xephyr does not close automatically after container is terminated.
+#If there is one instance of Xephyr running, kill it.
+if [ "$(pgrep Xephyr | wc -l)" -eq "1" ];then
+  killall Xephyr
+fi
 exit 0
 
 
