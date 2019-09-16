@@ -221,6 +221,11 @@ umount "${mntpnt}/etc/profile"
 if [ "$(pgrep Xephyr | wc -l)" -eq "1" ];then
   killall Xephyr
 fi
+#unmount if img file
+if [ "$MNT" -eq "$mntpnt" ];then
+  umount ${MNT}
+losetup -d ${LOOP}
+fi
 exit 0
 
 
