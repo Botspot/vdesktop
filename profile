@@ -35,6 +35,6 @@ fi
 
 export DISPLAY=:1
 eval "/usr/bin/lxsession -s LXDE-pi -e LXDE; sleep 5; /usr/bin/lxsession -s LXDE-pi -e LXDE" &
-sleep 30
-pcmanfm --desktop --profile LXDE-pi; pcmanfm --desktop --profile LXDE-pi
+sleep 10
+eval "pcmanfm --desktop --profile LXDE-pi; sleep 20; pcmanfm --desktop --profile LXDE-pi" &
 lxpanelctl restart
