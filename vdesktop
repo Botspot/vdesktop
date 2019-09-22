@@ -60,7 +60,7 @@ systemctl unmask  -- -.mount #if user accidentally shutdown the host while guest
 
 if [ -b "$1" ]; then
   echo "OK, looks like you specified a /dev location or block device"
-  if [[ "$1" == *[0-9] ]]; then
+  if [[ "$1" == *[1-9] ]]; then
     true #echo "You specified the partition number."
     umount -l "$1"
   else
@@ -157,6 +157,7 @@ elif [[ "$1" == *".img" ]] && [ -f "$1" ]; then
 
 elif [ "$1" == "/" ]; then
   echo "You cannot boot from Filesystem Root."
+  exit 0
 elif [ -d "$1" ]; then
   echo "OK, looks like you specified a directory"
   mntpnt=$1
@@ -224,11 +225,6 @@ fi
 #unmount if img file
 if [ "$MNT" -eq "$mntpnt" ];then
   umount ${MNT}
-losetup -d ${LOOP}
+  losetup -d ${LOOP}
 fi
 exit 0
-
-
-
-
-
