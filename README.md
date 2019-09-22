@@ -4,11 +4,10 @@ Run a second instance of Raspbian inside Raspbian.
 This script is excellent in these situations:
  - Migrating to a clean install of Raspbian and want to copy files from the old one.
  - Running two versions of software at the same time, one in the host, other in the guest.
- - Running something potentially dangerous (such as compiling) but don't want your main OS unmodified.
+ - Running something potentially dangerous (such as compiling) but don't want your main OS modified.
  - "Switch" OSes without ever shutting down or swapping SD cards.
  - Run Raspbian Stretch on a Pi 4.
 
-![screenshot of Stretch running in buster](https://i.stack.imgur.com/oti6Z.png)  
 To download & make excecutable:  
 `git clone https://github.com/Botspot/vdesktop`  
 `chmod +x /home/pi/vdesktop/rc.local /home/pi/vdesktop/vdesktop`
