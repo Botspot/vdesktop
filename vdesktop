@@ -19,6 +19,26 @@ elif [ $(id -u) -ne 0 ]; then
 fi
 #apt -y install xserver-xephyr systemd-container
 
+function cleanup {
+  
+  #unmount modifications to the guest
+  umount "${mntpnt}/etc/rc.local"
+  umount "${mntpnt}/etc/profile"
+
+  #Sometimes Xephyr does not close automatically after container is terminated.
+  #If there is one instance of Xephyr running, kill it.
+  if [ "$(pgrep Xephyr | wc -l)" -eq "1" ];then
+    killall Xephyr
+  fi
+  #unmount if img file
+  if [ "$MNT" -eq "$mntpnt" ];then
+    umount ${MNT}
+    losetup -d ${LOOP}
+  fi
+}
+
+trap cleanup EXIT
+
 REQ_PKG=systemd-container
 REQ_NAME=Systemd-nspawn
 PKG_OK=$(dpkg-query -W --showformat='${Status}\n' "$REQ_PKG"|grep "install ok installed")
