@@ -1,5 +1,34 @@
 #!/bin/bash
 DIRECTORY="$(dirname $0)"
+CURRENT_VER="$(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop/master/version)"
+LOCAL_VER="$(head -n 1 ${DIRECTORY}/version)"
+#echo $CURRENT_VER
+#echo $LOCAL_VER
+echo $DIRECTORY
+#sleep 10
+if [ $CURRENT_VER -gt $LOCAL_VER ];then
+  echo "Vdesktop has been updated since you downloaded it. Downloading new version now..."
+  #ls /home/pi/vdesktop
+  #rm -r "${DIRECTORY}"
+  cd
+  #ls "${DIRECTORY}"
+  rm -rf /home/pi/vdesktop.new
+  sudo -u pi git clone https://github.com/Botspot/vdesktop /home/pi/vdesktop.new
+  NEW_VER="$(head -n 1 /home/pi/vdesktop.new/version)"
+  if [ $NEW_VER -gt $LOCAL_VER ];then
+    echo "New version has been downloaded. Vdesktop is exiting."
+    sudo -u pi cp -rf /home/pi/vdesktop.new/* ${DIRECTORY}
+    chmod +x /home/pi/vdesktop/rc.local /home/pi/vdesktop/vdesktop
+    echo ""
+    exit 0
+    rm -rf /home/pi/vdesktop.new
+  else
+    echo "Could not successfully download Vdesktop. Vdesktop will continue."
+    rm -rf /home/pi/vdesktop.new
+  fi
+  sudo -u pi rm -rf /home/pi/vdesktop.new
+fi
+sudo -u pi rm -rf /home/pi/vdesktop.new
 #echo "Script located in:"
 #echo $DIRECTORY
 if [ -z "$1" ]; then
