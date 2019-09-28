@@ -2,31 +2,29 @@
 DIRECTORY="$(dirname $0)"
 CURRENT_VER="$(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop/master/version)"
 LOCAL_VER="$(head -n 1 ${DIRECTORY}/version)"
-#echo $CURRENT_VER
-#echo $LOCAL_VER
-echo $DIRECTORY
-#sleep 10
 if [ $CURRENT_VER -gt $LOCAL_VER ];then
-  echo "Vdesktop has been updated since you downloaded it. Downloading new version now..."
-  #ls /home/pi/vdesktop
-  #rm -r "${DIRECTORY}"
-  cd
-  #ls "${DIRECTORY}"
-  rm -rf /home/pi/vdesktop.new
-  sudo -u pi git clone https://github.com/Botspot/vdesktop /home/pi/vdesktop.new
-  NEW_VER="$(head -n 1 /home/pi/vdesktop.new/version)"
-  if [ $NEW_VER -gt $LOCAL_VER ];then
-    echo "New version has been downloaded. Vdesktop is exiting."
-    sudo -u pi cp -rf /home/pi/vdesktop.new/* ${DIRECTORY}
-    chmod +x /home/pi/vdesktop/rc.local /home/pi/vdesktop/vdesktop
-    echo ""
-    exit 0
-    rm -rf /home/pi/vdesktop.new
+  echo "Vdesktop has a new version. Would you like to download it? [Y/n]"
+  read yesno
+  if [[ "$yesno" == "n" ]]; then
+    echo "OK, Vdesktop will not download the new version."
   else
-    echo "Could not successfully download Vdesktop. Vdesktop will continue."
+    echo "OK. Downloading Vdesktop."
+    cd
     rm -rf /home/pi/vdesktop.new
+    sudo -u pi git clone https://github.com/Botspot/vdesktop /home/pi/vdesktop.new &>/dev/null
+    NEW_VER="$(head -n 1 /home/pi/vdesktop.new/version)"
+    if [ $NEW_VER -gt $LOCAL_VER ];then
+      echo "New version has been downloaded. Vdesktop is exiting."
+      sudo -u pi cp -rf /home/pi/vdesktop.new/* ${DIRECTORY}
+      chmod +x /home/pi/vdesktop/rc.local /home/pi/vdesktop/vdesktop
+      echo ""
+      exit 0
+      sudo -u pi rm -rf /home/pi/vdesktop.new
+    else
+      echo "Could not successfully download Vdesktop. Vdesktop will continue."
+      sudo -u pi rm -rf /home/pi/vdesktop.new
+    fi
   fi
-  sudo -u pi rm -rf /home/pi/vdesktop.new
 fi
 sudo -u pi rm -rf /home/pi/vdesktop.new
 #echo "Script located in:"
@@ -60,7 +58,7 @@ function cleanup {
     killall Xephyr
   fi
   #unmount if img file
-  if [ "$MNT" -eq "$mntpnt" ];then
+  if [ "$MNT" == "$mntpnt" ];then
     umount ${MNT}
     losetup -d ${LOOP}
   fi
@@ -260,20 +258,7 @@ eval 'while [ "$INITIAL_X_INSTANCES" -eq "$(pgrep lxsession | wc -l)" ]; do true
 printf '\e]12;#0000aa\a' #change cursor color while in guest so user doesn't forget
 #boot the guest
 systemd-nspawn --machine "virtualdesktop" -bD "$mntpnt"
+
 printf '\e]12;#aaa\a' #change cursor color back to lxterminal default
 
-#unmount modifications to the guest
-umount "${mntpnt}/etc/rc.local"
-umount "${mntpnt}/etc/profile"
-
-#Sometimes Xephyr does not close automatically after container is terminated.
-#If there is one instance of Xephyr running, kill it.
-if [ "$(pgrep Xephyr | wc -l)" -eq "1" ];then
-  killall Xephyr
-fi
-#unmount if img file
-if [ "$MNT" -eq "$mntpnt" ];then
-  umount ${MNT}
-  losetup -d ${LOOP}
-fi
 exit 0
