@@ -1,5 +1,6 @@
 #!/bin/bash
 DIRECTORY="$(dirname $0)"
+
 CURRENT_VER="$(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop/master/version)"
 LOCAL_VER="$(head -n 1 ${DIRECTORY}/version)"
 if [ $CURRENT_VER -gt $LOCAL_VER ];then
@@ -53,15 +54,14 @@ function cleanup {
   umount "${mntpnt}/etc/profile"
 
   #Sometimes Xephyr does not close automatically after container is terminated.
-  #If there is one instance of Xephyr running, kill it.
-  if [ "$(pgrep Xephyr | wc -l)" -eq "1" ];then
-    killall Xephyr
-  fi
+  killall vdesktop
+  killall Xephyr
   #unmount if img file
-  if [ "$MNT" == "$mntpnt" ];then
+  if [[ "$1" == *".img" ]] && [ -f "$1" ];then
     umount ${MNT}
     losetup -d ${LOOP}
   fi
+  rm "${DIRECTORY}/machine-id"
 }
 
 trap cleanup EXIT
@@ -103,7 +103,10 @@ fi
 mntpnt="/mnt/virtualdesktop" #if .img file or block device, this is default mount point
 mkdir "${mntpnt}" &>/dev/null
 umount "${mntpnt}" &>/dev/null
-systemctl unmask  -- -.mount #if user accidentally shutdown the host while guest was running, systemd masks "-.mount" by default. This ensures -.mount is not masked, though it will probably take a reboot to see any effect.
+
+#if user accidentally shutdown the host while guest was running, systemd masks "-.mount" by default. 
+#This ensures -.mount is not masked, though it usually takes a reboot to take effect.
+systemctl unmask  -- -.mount 
 
 if [ -b "$1" ]; then
   echo "OK, looks like you specified a /dev location or block device"
@@ -159,48 +162,11 @@ if [ -b "$1" ]; then
   mount "$1${partnum}" "$mntpnt" -o suid
 elif [[ "$1" == *".img" ]] && [ -f "$1" ]; then
   echo "OK, looks like you specified an .img file."
-  PART="Linux"
-  MNT="$mntpnt"
-  IMG="$1"
-  if [ "${PART}" = "" ]; then
-    PART="type=83"
-  else
-    PART="$(tr [A-Z] [a-z] <<< "${PART}")"
-    if [ "${PART}" = "w95" ];then
-      PART="type=c"
-    elif [ "${PART}" = "linux" ];then
-      PART="type=83"
-    else
-      usage
-    fi
-  fi
-  
-  INFO="$(sfdisk -d "${IMG}")"
-  START=$(grep "${PART}" <<< "${INFO}" | sed -n 's|^.*start=\s\+\([0-9]\+\).*$|\1|p')
-  SIZE=$(grep "${PART}" <<< "${INFO}" | sed -n 's|^.*size=\s\+\([0-9]\+\).*$|\1|p')
-  LOOP="$(losetup -f --show -o $((${START} * 512)) --sizelimit $((${SIZE} * 512)) "${IMG}")"
-  if [ $? -ne 0 ]; then
-    echo "Unable to create loop device"
-    exit 1
-  fi
-  if [ "${PART}" = "type=c" ]; then
-    dosfsck "${LOOP}"
-  else
-    FS_TYPE=$(blkid "${LOOP}" | sed -n 's|^.*TYPE="\(\S\+\)".*|\1|p')
-    if [ "${FS_TYPE}" = "f2fs" ]; then
-      fsck.f2fs "${LOOP}"
-    else
-      fsck.ext4 -f "${LOOP}"
-    fi
-  fi
-  if [ $? -ne 0 ]; then
-    losetup -d "${LOOP}"
-    echo "Filesystem appears corrupted"
-    exit 1
-  fi
-  mount "${LOOP}" ${MNT}
-  echo ""
-  echo "${IMG} mounted on ${MNT}"
+  echo "$1"
+  LOOP="$(losetup -fP --show $1)"
+  echo "$LOOP"
+  mount -o rw "${LOOP}p2" "$mntpnt"
+  mount -o rw "${LOOP}p1" "${mntpnt}/boot"
 
 elif [ "$1" == "/" ]; then
   echo "You cannot boot from Filesystem Root."
@@ -219,27 +185,17 @@ fi
 if [ $mntpnt == "*/" ]; then #ensure there is no trailing slash
   mntpnt=${mntpnt: :-1}
 fi
-mount -n -o remount,suid,rw "$mntpnt" #remount so root can access it
+mount -n -o remount,suid,rw "$mntpnt" #remount to allow root access
 
 #sed -i "/exit 0/i\/usr/bin/vncserver-virtual &" "${mntpnt}/etc/rc.local"
 
 if diff "${mntpnt}/etc/machine-id" "/etc/machine-id" > /dev/null
 then
-  echo "Machine IDs are equal, I have to fix this. Is this OK? \(y/n\)"
-  read answer 
-  if [ "$answer" == "y" ]; then
-    echo "Alright, changing the Machine ID."
-    rm -f "${mntpnt}/etc/machine-id"
-    dbus-uuidgen --ensure="${mntpnt}/etc/machine-id"
-    rm "${mntpnt}/var/lib/dbus/machine-id"
-    dbus-uuidgen --ensure="${mntpnt}/var/lib/dbus/machine-id"
-  elif [ "$answer" == "n" ]; then
-    echo "OK then, I will not change the Machine ID."
-    exit 0
-  else
-    echo 'I didn'\''t understand that. Next time type '\''y'\'' or '\''n'\''.'
-    exit 1
-  fi
+  echo "Temporarily changing Machine ID"
+  dbus-uuidgen --ensure="${DIRECTORY}/machine-id"
+  mount --bind "${DIRECTORY}/machine-id" "${mntpnt}/var/lib/dbus/machine-id"
+  mount --bind "${DIRECTORY}/machine-id" "${mntpnt}/etc/machine-id"
+  #rm -f "${mntpnt}/etc/machine-id"
 fi
 
 /bin/echo -e "Your cursor color will be \e[34mblue\e[39m until the container is terminated."
@@ -258,6 +214,8 @@ eval 'while [ "$INITIAL_X_INSTANCES" -eq "$(pgrep lxsession | wc -l)" ]; do true
 printf '\e]12;#0000aa\a' #change cursor color while in guest so user doesn't forget
 #boot the guest
 systemd-nspawn --machine "virtualdesktop" -bD "$mntpnt"
+
+echo "The machine has exited. Press ^C to unmount ${mntpnt}"
 
 printf '\e]12;#aaa\a' #change cursor color back to lxterminal default
 
