@@ -2,9 +2,9 @@
 ## Run a second instance of Raspbian inside Raspbian. 
 ![screenshot of Stretch running in buster](https://i.stack.imgur.com/oti6Z.png)  
 This script is excellent in these situations:
- - Migrating to a clean install of Raspbian and want to copy files from the old one.
+ - Migrating to a clean install of Raspbian and want to compare the appearance of both OS'es at once.
  - Running two versions of software at the same time, one in the host, other in the guest.
- - Running something potentially dangerous (such as compiling) but don't want your main OS modified.
+ - Running something you might want to undo (such as compiling) and don't want your main OS modified.
  - "Switch" OSes without ever shutting down or swapping SD cards.
  - Run Raspbian Stretch on a Pi 4.
 
@@ -29,6 +29,6 @@ Once the container has booted, you have to log in with the guest's credentials. 
  - Write up a more comprehensive set of instructions, and add come CLI flags.
  - autologin to the guest, so the user doesn't have to do it manually.
  - auto-detect default desktop session profile to correctly boot pi-top OS and Raspbian that doesn't have raspberrypi-ui-mods installed.
- - Sync sound between host and guest, preferably avoiding pulseaudio.
+ - Sync sound between host and guest, while avoiding pulseaudio.
  - display text at guest's default size instead of autoscaling to Xephyr's aspect ratio.
- - display guest's default mouse pointer instead of the fall-back Adwaita.
+ - display guest's default mouse pointer instead of the fallback Adwaita.
