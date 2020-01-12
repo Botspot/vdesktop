@@ -48,20 +48,24 @@ fi
 #apt -y install xserver-xephyr systemd-container
 
 function cleanup {
-  
+  echo ""
+  echo "Preparing to exit..."
   #unmount modifications to the guest
   umount "${mntpnt}/etc/rc.local"
   umount "${mntpnt}/etc/profile"
-
+  umount "${mntpnt}/var/lib/dbus/machine-id"
+  umount "${mntpnt}/etc/machine-id"
+  
   #Sometimes Xephyr does not close automatically after container is terminated.
+  killall Xephyr &>/dev/null
+  
+  umount -fl "${mntpnt}/boot"
+  umount -fl "$mntpnt"
+  losetup -d "$LOOP"
+  
+  rm "${DIRECTORY}/machine-id" &>/dev/null
+  echo "Unmounted and exiting..."
   killall vdesktop
-  killall Xephyr
-  #unmount if img file
-  if [[ "$1" == *".img" ]] && [ -f "$1" ];then
-    umount ${MNT}
-    losetup -d ${LOOP}
-  fi
-  rm "${DIRECTORY}/machine-id"
 }
 
 trap cleanup EXIT
@@ -100,7 +104,7 @@ if [ "" == "$PKG_OK" ]; then
   fi  
 fi
 
-mntpnt="/mnt/virtualdesktop" #if .img file or block device, this is default mount point
+mntpnt="/media/pi/vdesktop" #if .img file or block device, this is default mount point
 mkdir "${mntpnt}" &>/dev/null
 umount "${mntpnt}" &>/dev/null
 
@@ -211,12 +215,15 @@ mount --bind "${DIRECTORY}/rc.local" "${mntpnt}/etc/rc.local"
 INITIAL_X_INSTANCES="$(pgrep lxsession | wc -l)"
 eval 'while [ "$INITIAL_X_INSTANCES" -eq "$(pgrep lxsession | wc -l)" ]; do true; sleep 0.01; done; Xephyr -ac -screen 1270x960 -br -resizeable 2> /dev/null :1' &
 
-printf '\e]12;#0000aa\a' #change cursor color while in guest so user doesn't forget
+printf '\e]12;#0000aa\a' #change cursor color while in guest so user does not forget
 #boot the guest
+echo ""
+echo ""
 systemd-nspawn --machine "virtualdesktop" -bD "$mntpnt"
 
-echo "The machine has exited. Press ^C to unmount ${mntpnt}"
+echo ""
+echo "The machine has exited, but you can still access the guest. Press Ctrl+C to unmount ${mntpnt}"
 
 printf '\e]12;#aaa\a' #change cursor color back to lxterminal default
 
-exit 0
+sleep infinity
