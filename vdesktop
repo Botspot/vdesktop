@@ -4,7 +4,7 @@ DIRECTORY="$(dirname $0)"
 CURRENT_VER="$(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop/master/version)"
 LOCAL_VER="$(head -n 1 ${DIRECTORY}/version)"
 if [ $CURRENT_VER -gt $LOCAL_VER ];then
-  echo "Vdesktop has a new version. Would you like to download it? [Y/n]"
+  echo "Version ${CURRENT_VER} is available. Would you like to download it? [Y/n]"
   read yesno
   if [[ "$yesno" == "n" ]]; then
     echo "OK, Vdesktop will not download the new version."
@@ -12,22 +12,34 @@ if [ $CURRENT_VER -gt $LOCAL_VER ];then
     echo "OK. Downloading Vdesktop."
     cd
     rm -rf /home/pi/vdesktop.new
-    sudo -u pi git clone https://github.com/Botspot/vdesktop /home/pi/vdesktop.new &>/dev/null
+    sudo -u pi git clone https://github.com/Botspot/vdesktop /home/pi/vdesktop.new
+    chmod +x /home/pi/vdesktop.new/rc.local /home/pi/vdesktop.new/vdesktop
+    echo ""
     NEW_VER="$(head -n 1 /home/pi/vdesktop.new/version)"
     if [ $NEW_VER -gt $LOCAL_VER ];then
-      echo "New version has been downloaded. Vdesktop is exiting."
-      sudo -u pi cp -rf /home/pi/vdesktop.new/* ${DIRECTORY}
-      chmod +x /home/pi/vdesktop/rc.local /home/pi/vdesktop/vdesktop
-      echo ""
-      exit 0
-      sudo -u pi rm -rf /home/pi/vdesktop.new
+      echo "New version has been downloaded."
+      rm -rf /home/pi/vdesktop
+      sudo -u pi mv -f "/home/pi/vdesktop.new/" "/home/pi/vdesktop"
+      if [ $NEW_VER -eq "$(head -n 1 /home/pi/vdesktop/version)" ];then
+        echo "Copied to /home/pi/vdesktop successfully."
+        exit 0
+      else
+        echo "Was not able to copy the updated version to /home/pi/vdesktop. Run these commands to install manually:"
+        echo ""
+        echo "rm -rf /home/pi/vdesktop"
+        echo "git clone https://github.com/Botspot/vdesktop"
+        echo "chmod +x /home/pi/vdesktop/rc.local /home/pi/vdesktop/vdesktop"
+        echo ""
+        exit 1
+      fi
     else
-      echo "Could not successfully download Vdesktop. Vdesktop will continue."
-      sudo -u pi rm -rf /home/pi/vdesktop.new
+      echo "Download was not successful."
+      
+      exit 1
     fi
   fi
+  rm -rf /home/pi/vdesktop.new
 fi
-sudo -u pi rm -rf /home/pi/vdesktop.new
 #echo "Script located in:"
 #echo $DIRECTORY
 if [ -z "$1" ]; then
