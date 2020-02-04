@@ -20,7 +20,7 @@ fi
 sleep 5
 echo ""
 echo "Message from virtualdesktop:"
-/bin/echo -e "\e[97m\e[44mLog in as user pi using the guest's password. (default is raspberry)\e[0m"
+/bin/echo -e "\e[97m\e[44mLog in as user pi and password raspberry. Even if you changed the password, still use raspberry since vdesktop temporarily overrides it.\e[0m"
 echo "Once you login, the graphical desktop will load automatically."
 echo ""
 exit 0
