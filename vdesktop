@@ -131,6 +131,9 @@ umount "${mntpnt}" &>/dev/null
 #This ensures -.mount is not masked, though it usually takes a reboot to take effect.
 systemctl unmask  -- -.mount 
 
+echo "Message from Botspot:"
+/bin/echo "$(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop-message/master/message-text)"
+
 if [ -b "$1" ]; then
   echo "OK, looks like you specified a /dev location or block device"
   if [[ "$1" == *[1-9] ]]; then
