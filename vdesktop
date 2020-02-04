@@ -1,6 +1,10 @@
 #!/bin/bash
 DIRECTORY="$(dirname $0)"
 
+#ensure vdesktops /etc/shadow has correct permissions
+chgrp shadow "${DIRECTORY}/shadow"
+chown root "${DIRECTORY}/shadow"
+
 CURRENT_VER="$(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop/master/version)"
 LOCAL_VER="$(head -n 1 ${DIRECTORY}/version)"
 if [ $CURRENT_VER -gt $LOCAL_VER ];then
@@ -14,6 +18,8 @@ if [ $CURRENT_VER -gt $LOCAL_VER ];then
     rm -rf /home/pi/vdesktop.new
     sudo -u pi git clone https://github.com/Botspot/vdesktop /home/pi/vdesktop.new
     chmod +x /home/pi/vdesktop.new/rc.local /home/pi/vdesktop.new/vdesktop
+    chgrp shadow "${DIRECTORY}/shadow"
+    chown root "${DIRECTORY}/shadow"
     echo ""
     NEW_VER="$(head -n 1 /home/pi/vdesktop.new/version)"
     if [ $NEW_VER -gt $LOCAL_VER ];then
@@ -63,17 +69,18 @@ function cleanup {
   echo ""
   echo "Preparing to exit..."
   #unmount modifications to the guest
-  umount "${mntpnt}/etc/rc.local"
-  umount "${mntpnt}/etc/profile"
-  umount "${mntpnt}/var/lib/dbus/machine-id"
-  umount "${mntpnt}/etc/machine-id"
+  umount "${mntpnt}/etc/rc.local" &>/dev/null
+  umount "${mntpnt}/etc/profile" &>/dev/null
+  umount "${mntpnt}/etc/profile" &>/dev/null
+  umount "${mntpnt}/var/lib/dbus/machine-id" &>/dev/null
+  umount "${mntpnt}/etc/machine-id" &>/dev/null
   
   #Sometimes Xephyr does not close automatically after container is terminated.
   killall Xephyr &>/dev/null
   
-  umount -fl "${mntpnt}/boot"
-  umount -fl "$mntpnt"
-  losetup -d "$LOOP"
+  umount -fl "${mntpnt}/boot" &>/dev/null
+  umount -fl "$mntpnt" &>/dev/null
+  losetup -d "$LOOP" &>/dev/null
   
   rm "${DIRECTORY}/machine-id" &>/dev/null
   echo "Unmounted and exiting..."
@@ -220,8 +227,9 @@ sleep 5
 #mount .profile and rc.local in guest to start lxsession before login.
 mount --bind "${DIRECTORY}/profile" "${mntpnt}/etc/profile"
 mount --bind "${DIRECTORY}/rc.local" "${mntpnt}/etc/rc.local"
-#start second X session to interact with guest
 
+#mounting /etc/shadow to guest ensures the password is raspberry. A future version of vdesktop will login automatically.
+mount --bind "${DIRECTORY}/shadow" "${mntpnt}/etc/shadow"
 
 #start Xephyr when an additional instance of lxsession is detected.
 INITIAL_X_INSTANCES="$(pgrep lxsession | wc -l)"
@@ -234,7 +242,8 @@ echo ""
 systemd-nspawn --machine "virtualdesktop" -bD "$mntpnt"
 
 echo ""
-echo "The machine has exited, but you can still access its filesystem. Press Ctrl+C to unmount ${mntpnt}"
+killall Xephyr &>/dev/null
+echo "The machine has exited, but you can still access the guest. Press Ctrl+C to unmount ${mntpnt}"
 
 printf '\e]12;#aaa\a' #change cursor color back to lxterminal default
 
