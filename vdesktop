@@ -51,7 +51,7 @@ fi
 #echo $DIRECTORY
 if [ -z "$1" ]; then
   echo "You did not specify what to boot."
-  lsblk -o PATH,VENDOR,SIZE
+  lsblk -o PATH,MODEL,SIZE
   if [ $(id -u) -ne 0 ]; then
     echo "And you did not run this script as root user."
   fi
@@ -142,7 +142,7 @@ if [ -b "$1" ]; then
     umount -l "$1"
   else
     echo "You did not specify partition number."
-    echo "Would you like to specify one? (y/n) If not, I will try partition 2."
+    echo "Would you like to specify one? [y/N] If not, I will try partition 2."
     read yesno
     if [[ "$yesno" == "y" ]]; then
       echo "Alright. Input partiton number. (1-9)"
@@ -174,7 +174,7 @@ if [ -b "$1" ]; then
 
     if [[ "$(echo "$(udevadm info -q all -n $1${partnum} | grep 'by-uuid')" | awk '{print $2}'| head -n 1)" == "$(echo "$(udevadm info -q all -n $rootdev | grep 'by-uuid')" | awk '{print $2}'| head -n 1)" ]]; then #if uuids are equal
       echo "The device you are trying to boot from and your microSD have the same UUID."
-      echo "I can fix the problem by changing the UUID. Do I have your permission? (y/n)"
+      echo "I can fix the problem by changing the UUID. Do I have your permission? [Y/n]"
       read answer 
       if [ "$answer" == "y" ]; then
         echo "Alright, changing the UUID"
@@ -204,7 +204,7 @@ elif [ -d "$1" ]; then
 else
   echo "No such file or directory. Check spelling and try again."
   if [[ "$1" == "/dev/"* ]]; then
-    lsblk -o PATH,VENDOR,SIZE
+    lsblk -o PATH,MODEL,SIZE
   fi
   exit 1
 fi
