@@ -24,6 +24,7 @@ if [ $CURRENT_VER -gt $LOCAL_VER ];then
     NEW_VER="$(head -n 1 /home/pi/vdesktop.new/version)"
     if [ $NEW_VER -gt $LOCAL_VER ];then
       echo "New version has been downloaded. Old version is located in /home/pi/vdesktop.old"
+      rm -rf /home/pi/vdesktop.old
       sudo -u pi mv -f "/home/pi/vdesktop/" "/home/pi/vdesktop.old"
       sudo -u pi mv -f "/home/pi/vdesktop.new/" "/home/pi/vdesktop"
       if [ $NEW_VER -eq "$(head -n 1 /home/pi/vdesktop/version)" ];then
