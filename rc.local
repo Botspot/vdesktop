@@ -18,9 +18,6 @@ if [ "$_IP" ]; then
 fi
 
 sleep 5
-echo ""
-echo "Message from virtualdesktop:"
-/bin/echo -e "\e[97m\e[44mLog in as user pi and password raspberry. Even if you changed the password, still use raspberry since vdesktop temporarily overrides it.\e[0m"
-echo "Once you login, the graphical desktop will load automatically."
-echo ""
+
+/bin/echo -e "\nMessage from Vdesktop:\n\e[97m\e[44mLog in as user pi and password raspberry. Even if you changed the password, still use raspberry since Vdesktop temporarily overrides it.\e[0m\nOnce you login, the graphical desktop will load automatically.\n" | fold -s
 exit 0
