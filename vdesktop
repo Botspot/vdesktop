@@ -4,10 +4,10 @@ DIRECTORY="$(dirname $0)"
 # ensure vdesktops files have correct permissions
 chgrp shadow "${DIRECTORY}/shadow"
 chown root "${DIRECTORY}/shadow"
-chmod +x /home/pi/vdesktop/rc.local
+chmod +x "${DIRECTORY}/rc.local"
 
 CURRENT_VER="$(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop/master/version)"
-LOCAL_VER="$(head -n 1 ${DIRECTORY}/version)"
+LOCAL_VER="$(head -n 1 "${DIRECTORY}/version")"
 if [ $CURRENT_VER -gt $LOCAL_VER ];then
   echo "Version ${CURRENT_VER} is available. Would you like to download it? [Y/n]" | fold -s
   read yesno
@@ -15,28 +15,28 @@ if [ $CURRENT_VER -gt $LOCAL_VER ];then
     echo "OK, Vdesktop will not download the new version."
   else
     echo "OK. Downloading Vdesktop."
-    cd
-    rm -rf /home/pi/vdesktop.new
-    sudo -u pi git clone https://github.com/Botspot/vdesktop /home/pi/vdesktop.new
-    chmod +x /home/pi/vdesktop.new/vdesktop
-    chgrp shadow "${DIRECTORY}/shadow"
-    chown root "${DIRECTORY}/shadow"
+    cd "${DIRECTORY}"
+    rm -rf "${DIRECTORY}.new"
+    sudo -u pi git clone https://github.com/Botspot/vdesktop "${DIRECTORY}.new"
+    chmod +x "${DIRECTORY}.new/vdesktop"
+    chgrp shadow "${DIRECTORY}.new/shadow"
+    chown root "${DIRECTORY}.new/shadow"
     echo ""
-    NEW_VER="$(head -n 1 /home/pi/vdesktop.new/version)"
+    NEW_VER="$(head -n 1 "${DIRECTORY}.new/version")"
     if [ $NEW_VER -gt $LOCAL_VER ];then
-      echo "New version has been downloaded. Old version is located in /home/pi/vdesktop.old"
-      rm -rf /home/pi/vdesktop.old
-      sudo -u pi mv -f "/home/pi/vdesktop/" "/home/pi/vdesktop.old"
-      sudo -u pi mv -f "/home/pi/vdesktop.new/" "/home/pi/vdesktop"
-      if [ $NEW_VER -eq "$(head -n 1 /home/pi/vdesktop/version)" ];then
-        echo "Copied to /home/pi/vdesktop successfully."
+      echo "New version has been downloaded. Old version is located in.old"
+      rm -rf "${DIRECTORY}.old"
+      sudo -u pi mv -f "${DIRECTORY}/" "${DIRECTORY}.old"
+      sudo -u pi mv -f "${DIRECTORY}.new/" "${DIRECTORY}"
+      if [ $NEW_VER -eq "$(head -n 1 "${DIRECTORY}/version")" ];then
+        echo "Copied to successfully."
         exit 0
       else
-        echo "Was not able to copy the updated version to /home/pi/vdesktop. Run these commands to install manually:" | fold -s
+        echo "Was not able to copy the updated version to. Run these commands to install manually:" | fold -s
         echo ""
-        echo "rm -rf /home/pi/vdesktop"
+        echo "rm -rf"
         echo "git clone https://github.com/Botspot/vdesktop"
-        echo "chmod +x /home/pi/vdesktop/vdesktop"
+        echo "chmod +x/vdesktop"
         echo ""
         exit 1
       fi
@@ -46,7 +46,7 @@ if [ $CURRENT_VER -gt $LOCAL_VER ];then
       exit 1
     fi
   fi
-  rm -rf /home/pi/vdesktop.new
+  rm -rf "${DIRECTORY}.new"
 fi
 #echo "Script located in:"
 #echo $DIRECTORY
@@ -260,13 +260,14 @@ mount --bind "${DIRECTORY}/rc.local" "${mntpnt}/etc/rc.local"
 
 # start Xephyr when an additional instance of lxsession is detected.
 INITIAL_X_INSTANCES="$(pgrep lxsession | wc -l)"
-eval 'while [ "$INITIAL_X_INSTANCES" -eq "$(pgrep lxsession | wc -l)" ]; do true; sleep 0.01; done; Xephyr -ac -screen 1270x960 -br -resizeable 2> /dev/null :1' &
+eval 'while [ "$INITIAL_X_INSTANCES" -eq "$(pgrep lxsession | wc -l)" ]; do true; sleep 0.01; done; Xephyr -title Vdesktop -ac -screen 1270x960 -br -resizeable 2>/dev/null :1' &
 
 # mounting shadow password file to guest ensures the password is raspberry.
-mount --bind "${DIRECTORY}/shadow" "${mntpnt}/etc/shadow" # mount shadow password file to guest
+mount --bind "${DIRECTORY}/shadow" "${mntpnt}/etc/shadow"
 if [ -f "${DIRECTORY}/autologin" ]; then
   echo "Autologin file detected, booting in auto-login mode."
-  printf '\e]12;#0000AA\a' # change cursor color while in guest so user does not forget
+  #change cursor color while in guest so user does not forget
+  printf '\e]12;#0000AA\a'
   # boot the guest
   echo ""
   echo ""
@@ -278,10 +279,12 @@ if [ -f "${DIRECTORY}/autologin" ]; then
   send -- "raspberry\r"
   interact
   expect eof'
-else #autologin file not found
+else
+  #autologin file not found
   echo "Autologin file not detected, you will have to login yourself. Press Enter to continue."
   read ""
-  printf '\e]12;#0000AA\a' # change cursor color while in guest so user does not forget
+  #change cursor color while in guest so user does not forget
+  printf '\e]12;#0000AA\a' 
   # boot the guest
   echo ""
   echo ""
@@ -292,6 +295,7 @@ echo ""
 killall Xephyr &>/dev/null
 echo "The machine has exited, but you can still access the guest. Press Ctrl+C to unmount ${mntpnt}"
 
-printf '\e]12;#AAAAAA\a' # change cursor color back to lxterminal default
+#change cursor color back to lxterminal default
+printf '\e]12;#AAAAAA\a'
 
 sleep infinity
