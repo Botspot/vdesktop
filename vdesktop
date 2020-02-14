@@ -24,7 +24,7 @@ if [ $CURRENT_VER -gt $LOCAL_VER ];then
     echo ""
     NEW_VER="$(head -n 1 "${DIRECTORY}.new/version")"
     if [ $NEW_VER -gt $LOCAL_VER ];then
-      echo "New version has been downloaded. Old version is located in.old"
+      echo "New version has been downloaded. Old version is located in ${DIRECTORY}.old"
       rm -rf "${DIRECTORY}.old"
       sudo -u pi mv -f "${DIRECTORY}/" "${DIRECTORY}.old"
       sudo -u pi mv -f "${DIRECTORY}.new/" "${DIRECTORY}"
