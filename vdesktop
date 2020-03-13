@@ -1,10 +1,9 @@
 #!/bin/bash
 DIRECTORY="$(dirname $0)"
 
-# ensure vdesktops files have correct permissions
+# ensure files have correct permissions
 chgrp shadow "${DIRECTORY}/shadow"
 chown root "${DIRECTORY}/shadow"
-chmod +x "${DIRECTORY}/rc.local"
 
 CURRENT_VER="$(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop/master/version)"
 LOCAL_VER="$(head -n 1 "${DIRECTORY}/version")"
@@ -52,14 +51,17 @@ fi
 #echo $DIRECTORY
 if [ -z "$1" ]; then
   echo "You did not specify what to boot."
-  lsblk -o PATH,MODEL,SIZE
+  lsblk -do PATH,MODEL,SIZE
   if [ $(id -u) -ne 0 ]; then
     echo "And you did not run this script as root user."
   fi
-  echo ""
-  echo "Vdesktop can boot from an image file:   sudo vdesktop /home/pi/2019-09-26-raspbian-buster.img"
-  echo "Or a block device:                      sudo vdesktop /dev/sda"
-  echo "Or a Raspbian root directory:           sudo vdesktop /home/pi/old-raspbian/"
+  echo "
+Vdesktop can boot from an image file:   sudo vdesktop /home/pi/2019-09-26-raspbian-buster.img
+Or a block device:                      sudo vdesktop /dev/sda
+Or a Raspbian root directory:           sudo vdesktop /home/pi/old-raspbian/
+
+A second word specifies the boot mode: cli, cli-login, and gui. If none specified, cli mode is assumed.
+" | fold -s
   exit 0
 # Ensure being run as root
 elif [ $(id -u) -ne 0 ]; then
@@ -74,7 +76,6 @@ function cleanup {
   printf '\e]12;#AAAAAA\a' # change cursor color back to lxterminal default
   
   # unmount modifications to the guest
-  umount "${mntpnt}/etc/rc.local" &>/dev/null
   umount "${mntpnt}/etc/profile" &>/dev/null
   umount "${mntpnt}/etc/shadow" &>/dev/null
   umount "${mntpnt}/var/lib/dbus/machine-id" &>/dev/null
@@ -226,7 +227,7 @@ elif [ -d "$1" ]; then
 else
   echo "No such file or directory. Check spelling and try again."
   if [[ "$1" == "/dev/"* ]]; then
-    lsblk -o PATH,MODEL,SIZE
+    lsblk -do PATH,MODEL,SIZE
   fi
   exit 1
 fi
@@ -235,8 +236,6 @@ if [ $mntpnt == "*/" ]; then # ensure there is no trailing slash
   mntpnt=${mntpnt: :-1}
 fi
 mount -n -o remount,suid,rw "$mntpnt" # remount to allow root access
-
-# sed -i "/exit 0/i\/usr/bin/vncserver-virtual &" "${mntpnt}/etc/rc.local"
 
 if diff "${mntpnt}/etc/machine-id" "/etc/machine-id" > /dev/null
 then
@@ -254,18 +253,28 @@ echo "Booting in 5 seconds."
 machinectl terminate virtualdesktop &>/dev/null
 
 sleep 5
-# mount .profile and rc.local in guest to start lxsession before login.
-mount --bind "${DIRECTORY}/profile" "${mntpnt}/etc/profile"
-mount --bind "${DIRECTORY}/rc.local" "${mntpnt}/etc/rc.local"
+# mount .profile in guest to start lxsession before login.
+if [ "$2" = "gui" ]; then
+  #this starts the desktop session inside the guest
+  mount --bind "${DIRECTORY}/profile" "${mntpnt}/etc/profile"
+fi
 
-# start Xephyr when an additional instance of lxsession is detected.
-INITIAL_X_INSTANCES="$(pgrep lxsession | wc -l)"
-eval 'while [ "$INITIAL_X_INSTANCES" -eq "$(pgrep lxsession | wc -l)" ]; do true; sleep 0.01; done; Xephyr -title Vdesktop -ac -screen 1270x960 -br -resizeable 2>/dev/null :1' &
+if [ "$2" = "gui" ]; then
+  # start Xephyr when an additional instance of lxsession is detected.
+  INITIAL_X_INSTANCES="$(pgrep lxsession | wc -l)"
+  
+  #get screen dimensions to calculate xephyr size
+  screen_width="$(xdpyinfo | grep 'dimensions:' | tr 'x' '\n' | tr ' ' '\n' | sed -n 7p)"
+  screen_height="$(xdpyinfo | grep 'dimensions:' | tr 'x' '\n' | tr ' ' '\n' | sed -n 8p)"
+  
+  bash -c "while [ "$INITIAL_X_INSTANCES" -eq "$(pgrep lxsession | wc -l)" ]; do true; sleep 0.01; done; Xephyr -title Vdesktop -ac -screen ${screen_width}x$((screen_height-73)) -br -resizeable 2>/dev/null :1" &
+fi
 
-# mounting shadow password file to guest ensures the password is raspberry.
-mount --bind "${DIRECTORY}/shadow" "${mntpnt}/etc/shadow"
-if [ -f "${DIRECTORY}/autologin" ]; then
-  echo "Autologin file detected, booting in auto-login mode."
+if [ "$2" = "gui" ] || [ "$2" = "cli-login" ]; then
+  # mounting shadow password file to guest ensures the password is raspberry.
+  mount --bind "${DIRECTORY}/shadow" "${mntpnt}/etc/shadow"
+  
+  echo "Booting in auto-login mode."
   #change cursor color while in guest so user does not forget
   printf '\e]12;#0000AA\a'
   # boot the guest
@@ -277,12 +286,10 @@ if [ -f "${DIRECTORY}/autologin" ]; then
   send -- "pi\r"
   expect -re ".*Password: "
   send -- "raspberry\r"
-  interact
+  interact ''
   expect eof'
 else
-  #autologin file not found
-  echo "Autologin file not detected, you will have to login yourself. Press Enter to continue."
-  read ""
+  #shadow file not mounted
   #change cursor color while in guest so user does not forget
   printf '\e]12;#0000AA\a' 
   # boot the guest
