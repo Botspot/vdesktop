@@ -267,7 +267,7 @@ if [ "$2" = "gui" ]; then
   screen_width="$(xdpyinfo | grep 'dimensions:' | tr 'x' '\n' | tr ' ' '\n' | sed -n 7p)"
   screen_height="$(xdpyinfo | grep 'dimensions:' | tr 'x' '\n' | tr ' ' '\n' | sed -n 8p)"
   
-  eval 'while [ "$INITIAL_X_INSTANCES" -eq "$(pgrep lxsession | wc -l)" ]; do true; sleep 0.01; done; Xephyr -title Vdesktop -ac -screen ${screen_width}x$((screen_height-73)) -br -resizeable 2>/dev/null :1' &
+  eval 'while [ "$INITIAL_X_INSTANCES" -eq "$(pgrep lxsession | wc -l)" ]; do true; done; Xephyr -title Vdesktop -ac -screen ${screen_width}x$((screen_height-73)) -br -resizeable 2>/dev/null :1' &
 fi
 
 if [ "$2" = "gui" ] || [ "$2" = "cli-login" ]; then
