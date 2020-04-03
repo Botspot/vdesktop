@@ -201,7 +201,9 @@ elif [ -b "$1" ]; then
         exit 0
       else
         echo "Alright, changing the UUID"
+        e2fsck -pf "$1${partnum}"
         tune2fs "$1${partnum}" -U random
+        exit 0
       fi
     fi
   # finally mount the block device
@@ -267,7 +269,7 @@ if [ "$2" = "gui" ]; then
   screen_width="$(xdpyinfo | grep 'dimensions:' | tr 'x' '\n' | tr ' ' '\n' | sed -n 7p)"
   screen_height="$(xdpyinfo | grep 'dimensions:' | tr 'x' '\n' | tr ' ' '\n' | sed -n 8p)"
   
-  eval 'while [ "$INITIAL_X_INSTANCES" -eq "$(pgrep lxsession | wc -l)" ]; do true; done; Xephyr -title Vdesktop -ac -screen ${screen_width}x$((screen_height-73)) -br -resizeable 2>/dev/null :1' &
+  eval 'while [ "$INITIAL_X_INSTANCES" -eq "$(pgrep lxsession | wc -l)" ]; do true; done; Xephyr -title Vdesktop -ac -screen ${screen_width}x$((screen_height-73)) -br -glamor -resizeable :1 2>/dev/null' &
 fi
 
 if [ "$2" = "gui" ] || [ "$2" = "cli-login" ]; then
@@ -281,7 +283,7 @@ if [ "$2" = "gui" ] || [ "$2" = "cli-login" ]; then
   echo ""
   echo ""
   /usr/bin/expect -c 'set timeout -1
-  spawn systemd-nspawn --machine virtualdesktop -bD /media/pi/vdesktop
+  spawn systemd-nspawn --machine virtualdesktop -bD /media/pi/vdesktop --bind /lib
   expect -re ".*raspberrypi login: "
   send -- "pi\r"
   expect -re ".*Password: "
