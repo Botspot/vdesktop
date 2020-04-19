@@ -7,7 +7,7 @@ chown root "${DIRECTORY}/shadow"
 
 CURRENT_VER="$(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop/master/version)"
 LOCAL_VER="$(head -n 1 "${DIRECTORY}/version")"
-if [ $CURRENT_VER -gt $LOCAL_VER ];then
+if [ ! -z $CURRENT_VER ] && [ $CURRENT_VER -gt $LOCAL_VER ];then
   echo "Version ${CURRENT_VER} is available. Would you like to download it? [Y/n]" | fold -s
   read yesno
   if [[ "$yesno" == "n" ]]; then
@@ -47,6 +47,13 @@ if [ $CURRENT_VER -gt $LOCAL_VER ];then
   fi
   rm -rf "${DIRECTORY}.new"
 fi
+
+if [ -z $CURRENT_VER ];then
+  echo "Failed to check for updates!
+If you"\'"re sure you have an Internet connection, then something isn"\'"t right."
+fi
+
+exit 0
 #echo "Script located in:"
 #echo $DIRECTORY
 if [ -z "$1" ]; then
