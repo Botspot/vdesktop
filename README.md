@@ -25,10 +25,18 @@ Or the guest's directory:   `sudo ~/vdesktop/vdesktop /home/pi/raspbian-stretch/
 
 Once the container has booted, you have to log in with the guest's credentials. Then the guest's GUI will display in the Xephyr window.
 
+## Directory Tree:
+ - vdesktop/ - The main vdesktop folder. Located at /home/pi by default.
+   - vdesktop - The main script
+   - profile - This is temporarily mounted to the selected device to start the desktop session. (If enabled via Settings)
+   - shadow - This is mounted to /etc/shadow of the selected device to ensure the user pi's password is raspberry.
+   - version - Lets Vdesktop keep track of what version it is to see when an update is available.
+   - README.md - You're reading this right now.
+
 ## To do:
- - Write up a more comprehensive set of instructions, and add come CLI flags.
- - autologin to the guest, so the user doesn't have to do it manually.
- - auto-detect default desktop session profile to correctly boot pi-top OS and Raspbian that doesn't have raspberrypi-ui-mods installed.
+ - ~~Write up a more comprehensive set of instructions, and add come CLI flags.~~ **Check!** CLI flags choose what boot mode, and instructions are in the form of the [Pi Power Tools](https://github.com/Botspot/Pi-Power-Tools) GUI app.
+ - ~~autologin to the guest, so the user doesn't have to do it manually.~~ **Check!**
+ - auto-detect default desktop session profile to correctly boot pi-top OS and Raspbian that doesn't have raspberrypi-ui-mods installed. **Won't implement until the need arises.**
  - Sync sound between host and guest, while avoiding pulseaudio.
  - display text at guest's default size instead of autoscaling to Xephyr's aspect ratio.
  - display guest's default mouse pointer instead of the fallback Adwaita.
