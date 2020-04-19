@@ -284,7 +284,7 @@ if [ "$2" = "gui" ] || [ "$2" = "cli-login" ]; then
   echo ""
   /usr/bin/expect -c 'set timeout -1
   spawn systemd-nspawn --machine virtualdesktop -bD /media/pi/vdesktop --bind /lib
-  expect -re ".*raspberrypi login: "
+  expect -re ".*login: "
   send -- "pi\r"
   expect -re ".*Password: "
   send -- "raspberry\r"
