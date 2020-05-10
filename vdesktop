@@ -1,5 +1,5 @@
 #!/bin/bash
-DIRECTORY="$(dirname $0)"
+DIRECTORY="$(readlink -f $(dirname $0))"
 
 # ensure files have correct permissions
 chgrp shadow "${DIRECTORY}/shadow"
