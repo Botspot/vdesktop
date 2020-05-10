@@ -41,5 +41,6 @@ Once the container has booted, you have to log in with the guest's credentials. 
  - ~~autologin to the guest, so the user doesn't have to do it manually.~~ **Check!**
  - auto-detect default desktop session profile to correctly boot pi-top OS and Raspbian that doesn't have raspberrypi-ui-mods installed. **Won't implement until the need arises.**
  - Sync sound between host and guest, while avoiding pulseaudio.
+ - Sync clipboards between host and guest.
  - display text at guest's default size instead of autoscaling to Xephyr's aspect ratio.
  - display guest's default mouse pointer instead of the fallback Adwaita.
