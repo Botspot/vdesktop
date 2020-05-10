@@ -289,7 +289,7 @@ if [ "$2" = "gui" ] || [ "$2" = "cli-login" ]; then
   echo ""
   echo ""
   /usr/bin/expect -c 'set timeout -1
-  spawn systemd-nspawn --machine virtualdesktop -bD /media/pi/vdesktop --bind /lib
+  spawn systemd-nspawn --machine virtualdesktop -bD /media/pi/vdesktop
   expect -re ".*login: "
   send -- "pi\r"
   expect -re ".*Password: "
@@ -308,7 +308,7 @@ fi
 
 echo ""
 killall Xephyr &>/dev/null
-echo "The machine has exited, but you can still access the guest. Press Ctrl+C to unmount ${mntpnt}"
+echo "The machine has exited, but you can still access its filesystem. Press Ctrl+C to unmount ${mntpnt}"
 
 #change cursor color back to lxterminal default
 printf '\e]12;#AAAAAA\a'
