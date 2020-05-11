@@ -1,0 +1,48 @@
+#!/bin/bash
+#this script uses xsel to synchronize the clipboards of the host X server and the guest's Xephyr window.
+
+errorexit(){
+  echo $1
+  exit 1
+}
+
+[ ! -f /usr/bin/xsel ] && errorexit "xsel not installed!"
+
+hostdisplay=':0'
+guestdisplay=':1'
+
+while ! xsel --display $guestdisplay -b -o &>/dev/null;do
+  sleep 1
+done
+echo "Guest X server started. Running..."
+
+#update guest's clipboard at startup
+xsel --display $hostdisplay -b -o | xsel --display $guestdisplay -b -i
+
+guestprevclip="$(xsel --display $guestdisplay -b -o)"
+hostprevclip="$(xsel --display $hostdisplay -b -o)"
+
+while true;do
+  xsel --display $guestdisplay -b -o &>/dev/null || errorexit "failed to get guest clipboard!"
+  xsel --display $hostdisplay -b -o &>/dev/null || errorexit "failed to get host clipboard!"
+  guestcurclip="$(xsel --display $guestdisplay -b -o)"
+  hostcurclip="$(xsel --display $hostdisplay -b -o)"
+  
+  #if host's clipboard was changed this time
+  if [ "$hostcurclip" != "$hostprevclip" ];then
+    #update the guest's clipboard
+    xsel --display $hostdisplay -b -o | xsel --display $guestdisplay -b -i
+    
+    #if guest's clipboard was changed this time
+  elif [ "$guestcurclip" != "$guestprevclip" ];then
+    #update the host's clipboard
+    xsel --display $guestdisplay -b -o | xsel --display $hostdisplay -b -i
+  fi
+  
+  #shift register
+  guestprevclip="$guestcurclip"
+  hostprevclip="$hostcurclip"
+  
+  #wait a bit between each loop sequence
+  sleep 0.1
+done

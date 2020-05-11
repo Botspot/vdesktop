@@ -275,7 +275,12 @@ if [ "$2" = "gui" ]; then
   screen_width="$(xdpyinfo | grep 'dimensions:' | tr 'x' '\n' | tr ' ' '\n' | sed -n 7p)"
   screen_height="$(xdpyinfo | grep 'dimensions:' | tr 'x' '\n' | tr ' ' '\n' | sed -n 8p)"
   
-  eval 'while [ "$INITIAL_X_INSTANCES" -eq "$(pgrep lxsession | wc -l)" ]; do true; done; Xephyr -no-host-grab -title Vdesktop -ac -screen ${screen_width}x$((screen_height-73)) -br -glamor -resizeable :1 2>/dev/null' &
+  eval '
+    while [ "$INITIAL_X_INSTANCES" -eq "$(pgrep lxsession | wc -l)" ]; do
+      true
+    done
+    "${DIRECTORY}/clipboardsync" &
+    Xephyr -no-host-grab -title Vdesktop -ac -screen ${screen_width}x$((screen_height-73)) -br -glamor -resizeable :1 2>/dev/null' &
 fi
 
 if [ "$2" = "gui" ] || [ "$2" = "cli-login" ]; then
@@ -307,6 +312,7 @@ else
 fi
 
 echo ""
+killall clipboardsync &>/dev/null
 killall Xephyr &>/dev/null
 echo "The machine has exited, but you can still access its filesystem. Press Ctrl+C to unmount ${mntpnt}"
 
