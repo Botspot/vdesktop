@@ -96,7 +96,7 @@ function cleanup {
   
   rm "${DIRECTORY}/machine-id" &>/dev/null
   echo "Unmounted and exiting..."
-  machinectl poweroff virtualdesktop &>/dev/null
+  machinectl poweroff vdesktop &>/dev/null
   killall vdesktop
 }
 
@@ -245,7 +245,7 @@ if [ $mntpnt == "*/" ]; then # ensure there is no trailing slash
 fi
 mount -n -o remount,suid,rw "$mntpnt" # remount to allow root access
 
-if diff "${mntpnt}/etc/machine-id" "/etc/machine-id" > /dev/null
+if diff "${mntpnt}/etc/machine-id" "/etc/machine-id" > /dev/null || [ -z $(cat "${mntpnt}/etc/machine-id" | head -n1) ]
 then
   echo "Temporarily changing Machine ID"
   dbus-uuidgen --ensure="${DIRECTORY}/machine-id"
@@ -258,7 +258,7 @@ fi
 echo "Booting in 5 seconds."
 
 # terminate any previous instances of the machine in case it did not exit cleanly
-machinectl terminate virtualdesktop &>/dev/null
+machinectl terminate vdesktop &>/dev/null
 
 sleep 5
 # mount .profile in guest to start lxsession before login.
@@ -294,7 +294,7 @@ if [ "$2" = "gui" ] || [ "$2" = "cli-login" ]; then
   echo ""
   echo ""
   /usr/bin/expect -c 'set timeout -1
-  spawn systemd-nspawn --machine virtualdesktop -bD /media/pi/vdesktop
+  spawn systemd-nspawn --machine vdesktop -bD /media/pi/vdesktop
   expect -re ".*login: "
   send -- "pi\r"
   expect -re ".*Password: "
@@ -308,7 +308,7 @@ else
   # boot the guest
   echo ""
   echo ""
-  systemd-nspawn --machine "virtualdesktop" -bD "$mntpnt"
+  systemd-nspawn --machine "vdesktop" -bD "$mntpnt"
 fi
 
 echo ""
