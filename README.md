@@ -1,6 +1,6 @@
 # vdesktop
 ## Run a second instance of Raspbian inside Raspbian. 
-![screenshot of Stretch running in buster](https://i.stack.imgur.com/oti6Z.png)  
+![screenshot of Stretch running in buster](https://i.ibb.co/0yhP6sg/container-desktop-min.png)  
 This script is excellent in these situations:
  - Customizing a new Raspbian image - installing packages, configuring raspi-config, changing wallpaper, etc.
  - Migrating to a clean install of Raspbian and want to compare the appearance of both OS'es at once.
