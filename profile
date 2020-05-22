@@ -34,7 +34,11 @@ if [ -d /etc/profile.d ]; then
 fi
 
 export DISPLAY=:1
-eval "/usr/bin/startlxde-pi; sleep 10; /usr/bin/startlxde-pi" &
+eval "while true;do
+  /usr/bin/startlxde-pi
+  sleep 10
+done" &
+
 sleep 10
 eval "pcmanfm --desktop --profile LXDE-pi; sleep 20; pcmanfm --desktop --profile LXDE-pi" &
 lxpanelctl restart
