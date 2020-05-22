@@ -23,8 +23,8 @@ guestprevclip="$(xsel --display $guestdisplay -b -o)"
 hostprevclip="$(xsel --display $hostdisplay -b -o)"
 
 while true;do
-  xsel --display $guestdisplay -b -o &>/dev/null || errorexit "failed to get guest clipboard!"
-  xsel --display $hostdisplay -b -o &>/dev/null || errorexit "failed to get host clipboard!"
+  xsel --display $guestdisplay -b -o &>/dev/null || exit 0
+  xsel --display $hostdisplay -b -o &>/dev/null || exit 0
   guestcurclip="$(xsel --display $guestdisplay -b -o)"
   hostcurclip="$(xsel --display $hostdisplay -b -o)"
   

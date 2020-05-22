@@ -1,0 +1,46 @@
+#!/bin/bash
+
+sudo systemd-nspawn -bD $1 --volatile=no \
+  --bind=/dev/shm \
+  --property="DeviceAllow=/dev/shm rwm" \
+  \
+  --bind=/dev/snd \
+  --property="DeviceAllow=/dev/snd rwm" \
+  \
+  --bind=/dev/dri \
+  --property="DeviceAllow=/dev/dri/renderD128 rwm" \
+  --property="DeviceAllow=/dev/dri/card0 rwm" \
+  --property="DeviceAllow=/dev/dri/card1 rwm" \
+  \
+  --bind=/dev/input \
+  --property="DeviceAllow=/dev/input rwm" \
+  \
+  --bind=/proc/asound \
+  --bind=/proc/device-tree \
+  \
+  --bind=/dev/pts \
+  --property="DeviceAllow=char-pts rwm" \
+  \
+  --bind=/dev/ptmx \
+  --property="DeviceAllow=/dev/ptmx rwm" \
+  \
+  --bind=/sys/block \
+  --bind=/sys/dev \
+  --bind=/sys/devices \
+  --bind=/sys/module \
+  --bind=/sys/firmware \
+  --bind=/dev/v4l \
+  --bind=/dev/vchiq \
+  --property="DeviceAllow=/dev/vchiq rwm" \
+  \
+  --property="DeviceAllow=/dev/null rwm" \
+  --property="DeviceAllow=/dev/zero rwm" \
+  --property="DeviceAllow=/dev/full rwm" \
+  --property="DeviceAllow=/dev/random rwm" \
+  --property="DeviceAllow=/dev/urandom rwm" \
+  --property="DeviceAllow=/dev/net/tun rwm" \
+  \
+  --property="DeviceAllow=char-usb_device rwm" \
+  --property="DeviceAllow=char-input rwm" \
+  --property="DeviceAllow=char-alsa rwm" \
+  --property="DeviceAllow=char-drm rwm"

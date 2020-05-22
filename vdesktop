@@ -259,6 +259,7 @@ echo "Booting in 5 seconds."
 
 # terminate any previous instances of the machine in case it did not exit cleanly
 machinectl terminate vdesktop &>/dev/null
+machinectl poweroff vdesktop &>/dev/null
 
 sleep 5
 # mount .profile in guest to start lxsession before login.
@@ -277,7 +278,7 @@ if [ "$2" = "gui" ]; then
   
   eval '
     while [ "$INITIAL_X_INSTANCES" -eq "$(pgrep lxsession | wc -l)" ]; do
-      true
+      sleep 0.01
     done
     "${DIRECTORY}/clipboardsync" &
     Xephyr -no-host-grab -title Vdesktop -ac -screen ${screen_width}x$((screen_height-73)) -br -glamor -resizeable :1 2>/dev/null' &
@@ -293,14 +294,14 @@ if [ "$2" = "gui" ] || [ "$2" = "cli-login" ]; then
   # boot the guest
   echo ""
   echo ""
-  /usr/bin/expect -c 'set timeout -1
-  spawn systemd-nspawn --machine vdesktop -bD /media/pi/vdesktop
-  expect -re ".*login: "
-  send -- "pi\r"
-  expect -re ".*Password: "
-  send -- "raspberry\r"
+  /usr/bin/expect -c "set timeout -1
+  spawn ${DIRECTORY}/nspawn $mntpnt
+  expect -re .*login:
+  send -- pi\r
+  expect -re .*Password:
+  send -- raspberry\r
   interact ''
-  expect eof'
+  expect eof"
 else
   #shadow file not mounted
   #change cursor color while in guest so user does not forget
@@ -308,7 +309,7 @@ else
   # boot the guest
   echo ""
   echo ""
-  systemd-nspawn --machine "vdesktop" -bD "$mntpnt"
+  ${DIRECTORY}/nspawn $mntpnt
 fi
 
 echo ""
