@@ -32,6 +32,7 @@ Once the container has booted, you have to log in with the guest's credentials. 
  - vdesktop/ - The main vdesktop folder. Located at /home/pi by default.
    - vdesktop - The main script
    - clipboardsync - Keeps the guest's and host's clipboards in sync, like VNC.
+   - nspawn - The systemd-nspawn command. This was broken out of `vdesktop` to allow for lots of bind-mounts. (for sound sync)
    - profile - This is temporarily mounted to the selected device to start the desktop session. (If enabled via Settings)
    - shadow - This is mounted to /etc/shadow of the selected device to ensure the user pi's password is raspberry.
    - version - Lets Vdesktop keep track of what version it is to see when an update is available.
