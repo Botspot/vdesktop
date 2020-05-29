@@ -156,7 +156,7 @@ fi
 
 
 mntpnt="/media/pi/vdesktop" # if .img file or block device, this is default mount point
-mkdir "${mntpnt}" &>/dev/null
+mkdir -p "${mntpnt}" &>/dev/null
 umount -fl "${mntpnt}" &>/dev/null
 
 # if user accidentally shutdown the host while guest was running, systemd masks "-.mount" by default. 
