@@ -28,12 +28,12 @@ if [ ! -z $CURRENT_VER ] && [ $CURRENT_VER -gt $LOCAL_VER ];then
       sudo -u $USER mv -f "${DIRECTORY}/" "${DIRECTORY}.old"
       sudo -u $USER mv -f "${DIRECTORY}.new/" "${DIRECTORY}"
       if [ $NEW_VER -eq "$(head -n 1 "${DIRECTORY}/version")" ];then
-        echo "Copied to successfully."
+        echo "Copied to ${DIRECTORY} successfully."
         exit 0
       else
-        echo "Was not able to copy the updated version to. Run these commands to install manually:" | fold -s
+        echo "Was not able to copy the updated version to ${DIRECTORY}. Run these commands to install manually:" | fold -s
         echo ""
-        echo "rm -rf"
+        echo "rm -r "${DIRECTORY}"
         echo "git clone https://github.com/Botspot/vdesktop"
         echo "chmod +x/vdesktop"
         echo ""
@@ -41,7 +41,6 @@ if [ ! -z $CURRENT_VER ] && [ $CURRENT_VER -gt $LOCAL_VER ];then
       fi
     else
       echo "Download was not successful."
-      
       exit 1
     fi
   fi
