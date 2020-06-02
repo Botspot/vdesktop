@@ -14,7 +14,6 @@ Ships with vdesktop installed, and a handy menu shortcut to boot a pre-downloade
 
 ## To download & make excecutable:  
 `git clone https://github.com/Botspot/vdesktop`  
-`chmod +x /home/pi/vdesktop/vdesktop`
 
 ## To run:  
 `sudo ~/vdesktop/vdesktop`
