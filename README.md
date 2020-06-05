@@ -43,7 +43,7 @@ This is harder to do, since it involves mounting the img first, but here you go:
     LOOP="$(losetup -fP --show /path/to/your-raspbian.img)"
     mount -o rw "${LOOP}p2" /media/pi/vdesktop
     mount -o rw "${LOOP}p1" /media/pi/vdesktop/boot
-    systemd-nsapwn -bD /media/pi/USB-DRIVE
+    systemd-nsapwn -bD /media/pi/vdesktop
     umount -fl /media/pi/vdesktop/boot
     umount -fl /media/pi/vdesktop
     losetup -d "$LOOP"
