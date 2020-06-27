@@ -18,12 +18,6 @@ sudo systemd-nspawn -bD $1 --volatile=no \
   --bind=/proc/asound \
   --bind=/proc/device-tree \
   \
-  --bind=/dev/pts \
-  --property="DeviceAllow=char-pts rwm" \
-  \
-  --bind=/dev/ptmx \
-  --property="DeviceAllow=/dev/ptmx rwm" \
-  \
   --bind=/sys/block \
   --bind=/sys/dev \
   --bind=/sys/devices \
