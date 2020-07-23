@@ -7,11 +7,6 @@ sudo systemd-nspawn -bD $1 --volatile=no \
   --bind=/dev/snd \
   --property="DeviceAllow=/dev/snd rwm" \
   \
-  --bind=/dev/dri \
-  --property="DeviceAllow=/dev/dri/renderD128 rwm" \
-  --property="DeviceAllow=/dev/dri/card0 rwm" \
-  --property="DeviceAllow=/dev/dri/card1 rwm" \
-  \
   --bind=/dev/input \
   --property="DeviceAllow=/dev/input rwm" \
   \
