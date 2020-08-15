@@ -45,15 +45,36 @@ This is harder to do, since it involves mounting the img first, but here you go:
     umount -fl /media/pi/vdesktop
     losetup -d "$LOOP"
 #### What if you want graphics?
-This is *really hard*, and too long to post here. But here's what it involves:
+This is even harder. Launch Xephyr from a host's terminal, then connect to it from within the guest.
+
+From a terminal running on the host system:
+
+    Xehpyr :1
+
+A black window will appear. Assuming you've already ran the necessary `systemd-nspawn` command and logged in as user pi, to make the container/guest system connect to the Xephyr window, run this in the guest's console:
+
+    export DISPLAY=:1
+    /usr/bin/startlxde-pi
+
+If the graphics look bad, you will have to restart certain services. From within the guest's console:
+
+    eval "pcmanfm --desktop --profile LXDE-pi; sleep 20; pcmanfm --desktop --profile LXDE-pi" &
+    lxpanelctl restart
+    sleep 10
+    lxpanelctl restart
+
+#### What if you want everything to work automatically, without requiring any user interaction?
+This is *really hard*, and too long to post here. After all, it takes the entire vdesktop script to do this.
+Here's what it does:
 
  - A custom password file is mounted to the container to make sure the user pi's password is always `raspberry`.
  - `expect` logs in automatically to the console. It types in `pi` and `raspberry` so you don't have to.
- - After logging in, `/etc/profile` is run. Vdesktop mounted a custom version of that too, to start an X session from the inside.
+ - After logging in, `/etc/profile` is run. Vdesktop mounts a custom version of that too, to autostart an X session from the inside.
  - Meanwhile, a loop is running 100 times per second in the host, waiting until the container runs `lxsession`.
  - `Xephyr` opens when that loop triggers, (this is the VNC-style window), to allow the container's `lxsession` to connect to it.
  - Once Xephyr opens and the desktop loads, `clipboardsync` runs, to let you copy & paste text back and forth.
  - When you exit the container, and all of the above has to be safely dismantled and shutdown. Complex? You bet.
+ - On top of all that, `vdesktop` ensures dependencies are installed, detects any filesystem errors in the .img and asks permission to repair them, and performs a host of little bug fixes to make it Just Work™
 
 ## Directory Tree:
  - vdesktop/ - The main vdesktop folder. Located at /home/pi by default.
