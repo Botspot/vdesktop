@@ -9,9 +9,6 @@ This script is excellent in these situations:
  - "Switch" OSes without ever shutting down or swapping SD cards.
  - Running Raspbian Stretch on a Pi 4.
 
-## Download the [disk image](https://drive.google.com/file/d/1cJbcNDnm4Zm8zeHlCp8JQT5pwacAZeCp/view?usp=sharing)
-Ships with vdesktop installed, and a handy menu shortcut to boot a pre-downloaded Stretch img file.
-
 ## To download & make excecutable:  
 `git clone https://github.com/Botspot/vdesktop`  
 
