@@ -39,9 +39,11 @@ if [ -z $DISPLAY ];then
     /usr/bin/startlxde-pi
     sleep 10
   done" &
-  
-  sleep 10
+
+  sleep 5
   eval "pcmanfm --desktop --profile LXDE-pi; sleep 20; pcmanfm --desktop --profile LXDE-pi" &
+  lxpanelctl restart
+  sleep 10
   lxpanelctl restart
   sleep 10
   lxpanelctl restart

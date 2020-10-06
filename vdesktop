@@ -1,45 +1,41 @@
 #!/bin/bash
 DIRECTORY="$(readlink -f $(dirname $0))"
 
-# ensure files have correct permissions
-chgrp shadow "${DIRECTORY}/shadow"
-chown root "${DIRECTORY}/shadow"
-
 CURRENT_VER="$(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop/master/version)"
 LOCAL_VER="$(head -n 1 "${DIRECTORY}/version")"
 if [ ! -z $CURRENT_VER ] && [ $CURRENT_VER -gt $LOCAL_VER ];then
-  echo "Version ${CURRENT_VER} is available. Would you like to download it? [Y/n]" | fold -s
+  echo -e "Version ${CURRENT_VER} is available. Would you like to download it? [Y/n]" | fold -s
   read yesno
   if [[ "$yesno" == "n" ]]; then
-    echo "OK, Vdesktop will not download the new version."
+    echo -e "OK, Vdesktop will not download the new version."
   else
-    echo "OK. Downloading Vdesktop."
+    echo -e "OK. Downloading Vdesktop."
     cd "${DIRECTORY}"
     rm -rf "${DIRECTORY}.new"
     sudo -u $USER git clone https://github.com/Botspot/vdesktop "${DIRECTORY}.new"
-    chmod +x "${DIRECTORY}.new/vdesktop"
-    chgrp shadow "${DIRECTORY}.new/shadow"
-    chown root "${DIRECTORY}.new/shadow"
-    echo ""
+    echo -e ""
     NEW_VER="$(head -n 1 "${DIRECTORY}.new/version")"
     if [ $NEW_VER -gt $LOCAL_VER ];then
-      echo "New version has been downloaded. Old version is located in ${DIRECTORY}.old"
+      echo -e "New version has been downloaded. Old version is located in ${DIRECTORY}.old"
       rm -rf "${DIRECTORY}.old"
-      sudo -u $USER mv -f "${DIRECTORY}/" "${DIRECTORY}.old"
-      sudo -u $USER mv -f "${DIRECTORY}.new/" "${DIRECTORY}"
+      mv -f "${DIRECTORY}/" "${DIRECTORY}.old"
+      mv -f "${DIRECTORY}.new/" "${DIRECTORY}"
+      chgrp -R $USER "${DIRECTORY}"
+      chown -R $USER "${DIRECTORY}"
+      chmod +x "${DIRECTORY}/vdesktop"
       if [ $NEW_VER -eq "$(head -n 1 "${DIRECTORY}/version")" ];then
-        echo "Copied to ${DIRECTORY} successfully."
+        echo -e "Copied to ${DIRECTORY} successfully."
         exit 0
       else
-        echo "Was not able to copy the updated version to ${DIRECTORY}. Run these commands to install manually:" | fold -s
-        echo ""
-        echo "rm -r ${DIRECTORY}"
-        echo "git clone https://github.com/Botspot/vdesktop"
-        echo ""
+        echo -e "\e[91mWas not able to copy the updated version to ${DIRECTORY}.\e[39m Run these commands to install manually:" | fold -s
+        echo -e ""
+        echo -e "rm -r ${DIRECTORY}"
+        echo -e "git clone https://github.com/Botspot/vdesktop"
+        echo -e ""
         exit 1
       fi
     else
-      echo "Download was not successful."
+      echo -e "\e[91mDownload was not successful.\e[39m"
       exit 1
     fi
   fi
@@ -47,57 +43,30 @@ if [ ! -z $CURRENT_VER ] && [ $CURRENT_VER -gt $LOCAL_VER ];then
 fi
 
 if [ -z $CURRENT_VER ];then
-  echo -e "Failed to check for updates!\nIf you"\'"re sure you have an Internet connection, then something isn"\'"t right."
+  echo -e "\e[91mFailed to check for updates!\e[39m\nIf you"\'"re sure you have an Internet connection, then something isn"\'"t right."
 fi
 
-#echo "Script located in:"
-#echo $DIRECTORY
+#echo -e "Script located in:"
+#echo -e$DIRECTORY
 if [ -z "$1" ]; then
-  echo "You did not specify what to boot."
+  echo -e "\e[91mYou did not specify what to boot.\e[39m\nAvailable devices:"
   lsblk -do PATH,MODEL,SIZE
   if [ $(id -u) -ne 0 ]; then
-    echo "And you did not run this script as root user."
+    echo -e "\e[91mAnd you did not run this script as root user.\e[39m"
   fi
-  echo "
-Vdesktop can boot from an image file:   sudo vdesktop /home/pi/2019-09-26-raspbian-buster.img
+  echo -e "
+Vdesktop can boot from an image file:   sudo vdesktop /home/pi/raspbian-buster.img
 Or a block device:                      sudo vdesktop /dev/sda
 Or a Raspbian root directory:           sudo vdesktop /home/pi/old-raspbian/
 
-A second word specifies the boot mode: cli, cli-login, and gui. If none specified, cli mode is assumed.
-" | fold -s
+A second word specifies the boot mode: cli, cli-login, and gui. If none specified, cli mode is assumed."
   exit 0
 # Ensure being run as root
 elif [ $(id -u) -ne 0 ]; then
-  echo "You did not run this script as root user."
+  echo -e "\e[91mYou did not run this script as root user.\e[39m"
   exit 0
 fi
 #apt -y install xserver-xephyr systemd-container
-
-function cleanup {
-  echo ""
-  echo "Preparing to exit..."
-  printf '\e]12;#AAAAAA\a' # change cursor color back to lxterminal default
-  
-  # unmount modifications to the guest
-  umount "${mntpnt}/etc/profile" &>/dev/null
-  umount "${mntpnt}/etc/shadow" &>/dev/null
-  umount "${mntpnt}/var/lib/dbus/machine-id" &>/dev/null
-  umount "${mntpnt}/etc/machine-id" &>/dev/null
-  
-  # Sometimes Xephyr does not close automatically after container is terminated.
-  killall Xephyr &>/dev/null
-  
-  umount -fl "${mntpnt}/boot" &>/dev/null
-  umount -fl "$mntpnt" &>/dev/null
-  losetup -d "$LOOP" &>/dev/null
-  
-  rm "${DIRECTORY}/machine-id" &>/dev/null
-  echo "Unmounted and exiting..."
-  machinectl poweroff vdesktop &>/dev/null
-  killall vdesktop
-}
-
-trap cleanup EXIT
 
 PKG_NAMES="" # list of pretty names to show user
 PKG_LIST="" # list of package names to show apt
@@ -138,12 +107,13 @@ PKG_LIST="$(sed 's/ //' <<< $PKG_LIST)"
 
 if [[ ! -z "$PKG_LIST" ]]; then
   if [ "$(wc -w <<< "$PKG_NAMES")" -gt 1 ]; then # if only one package, change "need" to "needs".
-    echo "${PKG_NAMES} need to be installed for vdesktop to work. Proceed? [Y/n]" | fold -s
+    echo -e "${PKG_NAMES} need to be installed for vdesktop to work. Proceed? [Y/n]" | fold -s
   else
-    echo "${PKG_NAMES} needs to be installed for vdesktop to work. Proceed? [Y/n]" | fold -s
+    echo -e "${PKG_NAMES} needs to be installed for vdesktop to work. Proceed? [Y/n]" | fold -s
   fi
   read yesno
   if [[ "$yesno" == "n" ]]; then
+    echo -e "\e[91mGoodbye!\e[39m"
     exit 0
   else
     # PKG_LIST must not be in quotes so apt sees them as seperate packages
@@ -151,86 +121,140 @@ if [[ ! -z "$PKG_LIST" ]]; then
   fi
 fi
 
+function cleanup {
+  echo ""
+  
+  #echo "Press Enter to clean up."
+  #read enter
+  
+  echo -en "Cleaning up..."
+  printf '\e]12;#AAAAAA\a' # change cursor color back to lxterminal default
+  
+  # unmount modifications to the guest
+  umount "${mntpnt}/etc/shadow" &>/dev/null
+  umount "${mntpnt}/var/lib/dbus/machine-id" &>/dev/null
+  umount "${mntpnt}/etc/machine-id" &>/dev/null
+  umount "${mntpnt}/etc/profile" &>/dev/null
+  
+  # Sometimes Xephyr does not close automatically after container is terminated.
+  killall Xephyr &>/dev/null
+  
+  umount -fl "${mntpnt}/boot" &>/dev/null
+  umount -fl "$mntpnt" &>/dev/null
+  losetup -d "$LOOP" &>/dev/null
+  
+  rm "${DIRECTORY}/machine-id" &>/dev/null
+  machinectl poweroff vdesktop &>/dev/null
+  echo -e " Done"
+  exit 0
+}
 
-mntpnt="/media/pi/vdesktop" # if .img file or block device, this is default mount point
+trap cleanup EXIT
+
+#read config file and remove lines containing '#'
+conf="$(cat "${DIRECTORY}/config" | grep -v '#')"
+
+if [ -z "$conf" ];then
+  echo "config file missing!"
+  exit 1
+fi
+
+unmountonexit="$(echo "$conf" | sed -n 1p)"
+username="$(echo "$conf" | sed -n 2p)"
+password="$(echo "$conf" | sed -n 3p)"
+mntpnt="$(echo "$conf" | sed -n 4p)" # if .img file or block device, this is default mount point
+
+echo "Unmount on exit: $unmountonexit
+User: $username
+Pass: $password
+Mountpoint: $mntpnt"
+
+#ensure mountpoint exists
 mkdir -p "${mntpnt}" &>/dev/null
 umount -fl "${mntpnt}" &>/dev/null
+
+if [ -z "$2" ];then
+  bootmode='gui'
+else
+  bootmode="$2"
+fi
 
 # if user accidentally shutdown the host while guest was running, systemd masks "-.mount" by default. 
 # This ensures -.mount is not masked, though it usually takes a reboot to see any effect.
 systemctl unmask  -- -.mount 
 
-echo -e "Message from \e[32mBotspot\e[39m: $(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop-message/master/message-text)" | fold -s
+#message from botspot
+echo -e "$(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop-message/master/message-text)"
 
 # IMG FILE
 if [[ "$1" == *".img" ]] && [ -f "$1" ]; then
-  echo "OK, looks like you specified a disk image."
+  echo -e "OK, you specified a disk image."
   LOOP="$(losetup -fP --show $1)"
-  echo "$LOOP"
-  mount -o rw "${LOOP}p2" "$mntpnt"
+  echo -e "Here"\'"s the loop device for it: $LOOP"
+  mount -o rw "${LOOP}p2" "${mntpnt}"
   mount -o rw "${LOOP}p1" "${mntpnt}/boot"
 
 # BLOCK DEVICE
 elif [ -b "$1" ]; then
-  echo "OK, looks like you specified a /dev location or block device" | fold -s
+  echo -e "OK, you specified a /dev location or block device" | fold -s
   if [[ "$1" == *[1-9] ]]; then
-    umount -l "$1" &>/dev/null #ensure it is unmounted
+    # partition number specified, so do nothing
+    true
   else
-
+    # partition number not specified
     # check if partition 2 exists
     if [ -b "${1}2" ]; then 
-      echo "Partiton 2 exists. Booting..."
+      echo -e "Partiton 2 exists. Booting..."
       partnum=2
 
       # try partition 1
     elif [ -b "${1}1" ]; then 
-      echo "Partition 2 does not exist. Vdesktop will attempt to boot partition 1." | fold -s
+      echo -e "Partition 2 does not exist. Vdesktop will attempt to boot partition 1." | fold -s
       partnum=1
     else
       # neither 1 nor 2 exist
-      echo "Could not detect any partitions!"
+      echo -e "\e[91mCould not detect any partitions!\e[39m"
       exit 1
     fi
   fi
-    rootdev=$(echo "$(findmnt / -fnr)" | awk '{print $2}') # Which block device is mounted to  filesystem root
+    rootdev=$(echo -e "$(findmnt / -fnr)" | awk '{print $2}') # Which block device is mounted to  filesystem root
 
     # if guest uuid is equal to filesystem roots uuid
-    if [[ "$(echo "$(udevadm info -q all -n $1${partnum} | grep 'by-uuid')" | awk '{print $2}'| head -n 1)" == "$(echo "$(udevadm info -q all -n $rootdev | grep 'by-uuid')" | awk '{print $2}'| head -n 1)" ]]; then
-      echo "The device you are trying to boot from and your microSD have the same UUID."
-      echo "Vdesktop can fix the problem by changing the UUID. Proceed? [Y/n]"
+    if [[ "$(echo -e "$(udevadm info -q all -n $1${partnum} | grep 'by-uuid')" | awk '{print $2}'| head -n 1)" == "$(echo -e "$(udevadm info -q all -n $rootdev | grep 'by-uuid')" | awk '{print $2}'| head -n 1)" ]]; then
+      echo -e "The device you are trying to boot from and your microSD have the same UUID."
+      echo -e "Vdesktop can fix the problem by changing the UUID. Proceed? [Y/n]"
       read answer 
       if [ "$answer" == "n" ]; then
-        echo "UUID not changed. Exiting."
+        echo -e "\e[91mUUID not changed. Exiting.\e[39m"
         exit 0
       else
-        echo "Alright, changing the UUID"
+        echo -e "Alright, changing the UUID"
         e2fsck -pf "$1${partnum}"
         tune2fs "$1${partnum}" -U random
-        exit 0
       fi
     fi
   # finally mount the block device
-  umount "$1${partnum}" &>/dev/null
-  mount "$1${partnum}" "$mntpnt" -o suid
+  umount -l "$1${partnum}" &>/dev/null
+  mount "$1${partnum}" "${mntpnt}" -o suid
   if [ $partnum -eq 2 ]; then #mount partition 1 at boot in guest
     umount "${1}1" &>/dev/null
     mount "${1}1" "${mntpnt}/boot" -o suid
-    echo "mounting boot as well"
+    echo -e "mounting boot as well"
   fi
 
 # PREVENT BOOTING ROOT
 elif [ "$1" == "/" ]; then
-  echo "You cannot boot from Filesystem Root."
-  exit 0
+  echo -e "\e[91mYou cannot boot from Filesystem Root.\e[39m"
+  exit 1
 
 # DIRECTORY
 elif [ -d "$1" ]; then
-  echo "OK, looks like you specified a directory"
-  # mount the specified directory to /media/pi/vdesktop
-  mount --bind "$1" "$mntpnt"
+  echo -e "OK, looks like you specified a directory"
+  # mount the specified directory to default location
+  mount --bind "$1" "${mntpnt}"
 # NOT_FOUND
 else
-  echo "No such file or directory. Check spelling and try again."
+  echo -e "\e[91mNo such file or directory. Check spelling and try again.\e[39m"
   if [[ "$1" == "/dev/"* ]]; then
     lsblk -do PATH,MODEL,SIZE
   fi
@@ -238,13 +262,14 @@ else
 fi
 
 if [ $mntpnt == "*/" ]; then # ensure there is no trailing slash
-  mntpnt=${mntpnt: :-1}
+  mntpnt="${mntpnt: :-1}"
 fi
+
 mount -n -o remount,suid,rw "$mntpnt" # remount to allow root access
 
 if diff "${mntpnt}/etc/machine-id" "/etc/machine-id" > /dev/null || [ -z $(cat "${mntpnt}/etc/machine-id" | head -n1) ]
 then
-  echo "Temporarily changing Machine ID"
+  echo -e "Temporarily changing Machine ID"
   dbus-uuidgen --ensure="${DIRECTORY}/machine-id"
   mount --bind "${DIRECTORY}/machine-id" "${mntpnt}/var/lib/dbus/machine-id"
   mount --bind "${DIRECTORY}/machine-id" "${mntpnt}/etc/machine-id"
@@ -252,20 +277,27 @@ then
 fi
 
 /bin/echo -e "Your cursor color will be \e[44mblue\e[49m until the container is terminated."
-echo "Booting in 5 seconds."
+echo -e -n "Booting in 5 seconds"
 
 # terminate any previous instances of the machine in case it did not exit cleanly
 machinectl terminate vdesktop &>/dev/null
 machinectl poweroff vdesktop &>/dev/null
 
-sleep 5
-# mount .profile in guest to start lxsession before login.
-if [ "$2" = "gui" ]; then
+sleep 1
+echo -n '.'
+sleep 1
+echo -n '.'
+sleep 1
+echo -n '.'
+sleep 1
+echo -n '.'
+sleep 1
+echo '.'
+
+if [ "$bootmode" == "gui" ]; then
   #this starts the desktop session inside the guest
   mount --bind "${DIRECTORY}/profile" "${mntpnt}/etc/profile"
-fi
-
-if [ "$2" = "gui" ]; then
+  
   # start Xephyr when an additional instance of lxsession is detected.
   INITIAL_X_INSTANCES="$(pgrep lxsession | wc -l)"
   
@@ -281,40 +313,37 @@ if [ "$2" = "gui" ]; then
     Xephyr -no-host-grab -title Vdesktop -ac -screen ${screen_width}x$((screen_height-73)) -br -glamor -resizeable :1 2>/dev/null' &
 fi
 
-if [ "$2" = "gui" ] || [ "$2" = "cli-login" ]; then
-  # mounting shadow password file to guest ensures the password is raspberry.
-  mount --bind "${DIRECTORY}/shadow" "${mntpnt}/etc/shadow"
-  
+if [ "$bootmode" == "gui" ] || [ "$bootmode" == "cli-login" ]; then
   echo "Booting in auto-login mode."
-  #change cursor color while in guest so user does not forget
+  #change cursor color while in guest
   printf '\e]12;#0000AA\a'
   # boot the guest
-  echo ""
-  echo ""
+  echo -e ""
+  echo -e ""
   /usr/bin/expect -c "set timeout -1
   spawn ${DIRECTORY}/nspawn $mntpnt
   expect -re .*login:
-  send -- pi\r
+  send -- ${username}\r
   expect -re .*Password:
-  send -- raspberry\r
+  send -- ${password}\r
   interact ''
   expect eof"
 else
-  #shadow file not mounted
-  #change cursor color while in guest so user does not forget
+  #change cursor color while in guest
   printf '\e]12;#0000AA\a' 
   # boot the guest
-  echo ""
-  echo ""
-  ${DIRECTORY}/nspawn $mntpnt
+  echo -e "\n\n"
+  "${DIRECTORY}/nspawn" "$mntpnt"
 fi
-
-echo ""
-killall clipboardsync &>/dev/null
-killall Xephyr &>/dev/null
-echo "The machine has exited, but you can still access its filesystem. Press Ctrl+C to unmount ${mntpnt}"
 
 #change cursor color back to lxterminal default
 printf '\e]12;#AAAAAA\a'
 
-sleep infinity
+echo -e ""
+killall clipboardsync &>/dev/null
+killall Xephyr &>/dev/null
+
+if [ "$unmountonexit" != 'yes' ];then
+  echo -e "The machine has exited, but you can still access its filesystem. Press Ctrl+C to unmount ${mntpnt}"
+  sleep infinity
+fi
