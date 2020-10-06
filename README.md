@@ -22,6 +22,8 @@ Or the guest's directory:   `sudo ~/vdesktop/vdesktop /home/pi/raspbian-stretch/
 A second word specifies the boot mode: `cli`, `cli-login`, and `gui`. If none 
 specified, cli mode is assumed.
 
+The `cli-login` and `gui` modes optionally accept additional parameters of `[username]` and `[password]`, for example: `sudo ~/vdesktop/vdesktop custom-image.img cli-login myuser mypass`
+
 Once the container has booted, you have to log in with the guest's credentials. Then the guest's GUI will display in the Xephyr window.
 
 ## How does it work?

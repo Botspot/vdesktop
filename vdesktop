@@ -282,9 +282,19 @@ if [ "$2" = "gui" ]; then
 fi
 
 if [ "$2" = "gui" ] || [ "$2" = "cli-login" ]; then
-  # mounting shadow password file to guest ensures the password is raspberry.
-  mount --bind "${DIRECTORY}/shadow" "${mntpnt}/etc/shadow"
-  
+  if [ -z "$3" ]; then
+    LOGIN_USER="pi"
+  else
+    LOGIN_USER="$3"
+  fi
+  if [ -z "$4" ]; then
+    LOGIN_PASS="raspberry"
+    # mounting shadow password file to guest ensures the password is raspberry.
+    mount --bind "${DIRECTORY}/shadow" "${mntpnt}/etc/shadow"
+  else
+    LOGIN_PASS="$4"
+  fi
+
   echo "Booting in auto-login mode."
   #change cursor color while in guest so user does not forget
   printf '\e]12;#0000AA\a'
@@ -294,9 +304,9 @@ if [ "$2" = "gui" ] || [ "$2" = "cli-login" ]; then
   /usr/bin/expect -c "set timeout -1
   spawn ${DIRECTORY}/nspawn $mntpnt
   expect -re .*login:
-  send -- pi\r
+  send -- ${LOGIN_USER}\r
   expect -re .*Password:
-  send -- raspberry\r
+  send -- ${LOGIN_PASS}\r
   interact ''
   expect eof"
 else
