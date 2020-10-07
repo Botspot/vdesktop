@@ -5,7 +5,7 @@ CURRENT_VER="$(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop/mast
 LOCAL_VER="$(head -n 1 "${DIRECTORY}/version")"
 if [ ! -z $CURRENT_VER ] && [ $CURRENT_VER -gt $LOCAL_VER ];then
   echo -e "A new version of vdesktop is available."
-  echo -e "To upgrade, run the following command to upgrade:"
+  echo -e "To upgrade, run the following command:"
   echo -e "  pushd $DIRECTORY; git pull origin master; popd"
 fi
 
