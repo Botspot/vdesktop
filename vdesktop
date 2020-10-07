@@ -46,8 +46,6 @@ if [ -z $CURRENT_VER ];then
   echo -e "\e[91mFailed to check for updates!\e[39m\nIf you"\'"re sure you have an Internet connection, then something isn"\'"t right."
 fi
 
-#echo -e "Script located in:"
-#echo -e$DIRECTORY
 if [ -z "$1" ]; then
   echo -e "\e[91mYou did not specify what to boot.\e[39m\nAvailable devices:"
   lsblk -do PATH,MODEL,SIZE
@@ -66,7 +64,6 @@ elif [ $(id -u) -ne 0 ]; then
   echo -e "\e[91mYou did not run this script as root user.\e[39m"
   exit 0
 fi
-#apt -y install xserver-xephyr systemd-container
 
 PKG_NAMES="" # list of pretty names to show user
 PKG_LIST="" # list of package names to show apt
@@ -123,9 +120,6 @@ fi
 
 function cleanup {
   echo ""
-  
-  #echo "Press Enter to clean up."
-  #read enter
   
   echo -en "Cleaning up..."
   printf '\e]12;#AAAAAA\a' # change cursor color back to lxterminal default
@@ -273,7 +267,6 @@ then
   dbus-uuidgen --ensure="${DIRECTORY}/machine-id"
   mount --bind "${DIRECTORY}/machine-id" "${mntpnt}/var/lib/dbus/machine-id"
   mount --bind "${DIRECTORY}/machine-id" "${mntpnt}/etc/machine-id"
-  # rm -f "${mntpnt}/etc/machine-id"
 fi
 
 /bin/echo -e "Your cursor color will be \e[44mblue\e[49m until the container is terminated."
