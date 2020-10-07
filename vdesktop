@@ -4,42 +4,9 @@ DIRECTORY="$(readlink -f $(dirname $0))"
 CURRENT_VER="$(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop/master/version)"
 LOCAL_VER="$(head -n 1 "${DIRECTORY}/version")"
 if [ ! -z $CURRENT_VER ] && [ $CURRENT_VER -gt $LOCAL_VER ];then
-  echo -e "Version ${CURRENT_VER} is available. Would you like to download it? [Y/n]" | fold -s
-  read yesno
-  if [[ "$yesno" == "n" ]]; then
-    echo -e "OK, Vdesktop will not download the new version."
-  else
-    echo -e "OK. Downloading Vdesktop."
-    cd "${DIRECTORY}"
-    rm -rf "${DIRECTORY}.new"
-    sudo -u $USER git clone https://github.com/Botspot/vdesktop "${DIRECTORY}.new"
-    echo -e ""
-    NEW_VER="$(head -n 1 "${DIRECTORY}.new/version")"
-    if [ $NEW_VER -gt $LOCAL_VER ];then
-      echo -e "New version has been downloaded. Old version is located in ${DIRECTORY}.old"
-      rm -rf "${DIRECTORY}.old"
-      mv -f "${DIRECTORY}/" "${DIRECTORY}.old"
-      mv -f "${DIRECTORY}.new/" "${DIRECTORY}"
-      chgrp -R $USER "${DIRECTORY}"
-      chown -R $USER "${DIRECTORY}"
-      chmod +x "${DIRECTORY}/vdesktop"
-      if [ $NEW_VER -eq "$(head -n 1 "${DIRECTORY}/version")" ];then
-        echo -e "Copied to ${DIRECTORY} successfully."
-        exit 0
-      else
-        echo -e "\e[91mWas not able to copy the updated version to ${DIRECTORY}.\e[39m Run these commands to install manually:" | fold -s
-        echo -e ""
-        echo -e "rm -r ${DIRECTORY}"
-        echo -e "git clone https://github.com/Botspot/vdesktop"
-        echo -e ""
-        exit 1
-      fi
-    else
-      echo -e "\e[91mDownload was not successful.\e[39m"
-      exit 1
-    fi
-  fi
-  rm -rf "${DIRECTORY}.new"
+  echo -e "A new version of vdesktop is available."
+  echo -e "To upgrade, run the following command:"
+  echo -e "  pushd $DIRECTORY; git pull origin master; popd"
 fi
 
 if [ -z $CURRENT_VER ];then
