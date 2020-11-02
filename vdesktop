@@ -204,13 +204,19 @@ trap cleanup EXIT
 trap cleanup SIGINT
 trap cleanup SIGTERM
 
+if [ -z "$3" ];then
+  source "${DIRECTORY}/settings.env"
+else
+  source "$3"
+fi
+
 #All config options
 bootmode="${2-gui}"
-unmountonexit="${UMOUNT_ON_EXIT-yes}"
+unmountonexit="${VDESKTOP_UMOUNT_ON_EXIT-yes}"
 username="${VDESKTOP_USER-pi}"
 password="${VDESKTOP_PASS-raspberry}"
 mntpnt="${VDESKTOP_MOUNTPOINT-/media/pi/vdesktop}" # if .img file or block device, this is default mount point
-enablerootmount="${VDESKTOP_ENABLE_ROOT_MOUNT-yes}"
+enablerootmount="${VDESKTOP_ENABLE_ROOTMOUNT-yes}"
 
 #enable virgl default setting depends on gui mode
 if [ "$bootmode" == "gui" ];then
