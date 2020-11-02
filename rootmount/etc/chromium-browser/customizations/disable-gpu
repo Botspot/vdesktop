@@ -1,0 +1,1 @@
+CHROMIUM_FLAGS="${CHROMIUM_FLAGS} --ignore-gpu-blacklist --disable-gpu-compositing"
