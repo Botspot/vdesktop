@@ -1,66 +1,105 @@
 #!/bin/bash
 DIRECTORY="$(readlink -f $(dirname $0))"
 
+function error {
+  echo -e "\e[91m$1\e[39m"
+  exit 1
+}
+
 CURRENT_VER="$(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop/master/version)"
 LOCAL_VER="$(head -n 1 "${DIRECTORY}/version")"
-if [ ! -z $CURRENT_VER ] && [ $CURRENT_VER -gt $LOCAL_VER ];then
-  echo -e "A new version of vdesktop is available."
-  echo -e "To upgrade, run the following command:"
-  echo -e "  pushd $DIRECTORY; git pull origin master; popd"
+if [ ! -z $CURRENT_VER ] && [ ! -z $LOCAL_VER ] && [ $CURRENT_VER -gt $LOCAL_VER ];then
+  echo -e "Version ${CURRENT_VER} is available. Would you like to download it? [Y/n]" | fold -s
+  read yesno -t 10 -n 1
+  if [[ "$yesno" == "y" ]]; then
+    echo -e "OK. Downloading Vdesktop."
+    rm -rf "${DIRECTORY}.new"
+    sudo -u $USER git clone https://github.com/Botspot/vdesktop "${DIRECTORY}.new"
+    echo -e ""
+    NEW_VER="$(head -n 1 "${DIRECTORY}.new/version")"
+    if [ $NEW_VER -gt $LOCAL_VER ];then
+      echo -e "New version has been downloaded. Old version is located at ${DIRECTORY}.old"
+      gio trash "${DIRECTORY}.old"
+      mv -f "${DIRECTORY}/" "${DIRECTORY}.old"
+      mv -f "${DIRECTORY}.new/" "${DIRECTORY}"
+      chgrp -R $USER "${DIRECTORY}"
+      chown -R $USER "${DIRECTORY}"
+      chmod +x "${DIRECTORY}/vdesktop"
+      if [ $NEW_VER -eq "$(head -n 1 "${DIRECTORY}/version")" ];then
+        echo -e "Copied to ${DIRECTORY} successfully."
+        exit 0
+      else
+        echo -e "\e[91mWas not able to copy the updated version to ${DIRECTORY}.\e[39m Run these commands to install manually:" | fold -s
+        echo -e ""
+        echo -e "rm -r ${DIRECTORY}"
+        echo -e "git clone https://github.com/Botspot/vdesktop"
+        echo -e ""
+        exit 1
+      fi
+    else
+      echo -e "\e[91mDownload was not successful.\e[39m"
+      exit 1
+    fi
+  else
+    echo -e "OK, Vdesktop will not download the new version."
+  fi
 fi
 
 if [ -z $CURRENT_VER ];then
-  echo -e "\e[91mFailed to check for updates!\e[39m\nIf you"\'"re sure you have an Internet connection, then something isn"\'"t right."
+  echo -e "\e[33mFailed to check for updates!\e[39m"
 fi
 
-if [ -z "$1" ]; then
-  echo -e "\e[91mYou did not specify what to boot.\e[39m\nAvailable devices:"
+usage() {
+  echo 'Available devices:'
   lsblk -do PATH,MODEL,SIZE
-  if [ $(id -u) -ne 0 ]; then
-    echo -e "\e[91mAnd you did not run this script as root user.\e[39m"
-  fi
   echo -e "
 Vdesktop can boot from an image file:   sudo vdesktop /home/pi/raspbian-buster.img
 Or a block device:                      sudo vdesktop /dev/sda
 Or a Raspbian root directory:           sudo vdesktop /home/pi/old-raspbian/
 
 A second word specifies the boot mode: cli, cli-login, and gui. If none specified, cli mode is assumed."
-  exit 0
-# Ensure being run as root
-elif [ $(id -u) -ne 0 ]; then
+  exit 1
+}
+
+if [ -z "$1" ]; then
+  echo -e "\e[91mYou did not specify what to boot.\e[39m"
+  exitscript=1
+fi
+
+if [ $(id -u) -ne 0 ]; then
   echo -e "\e[91mYou did not run this script as root user.\e[39m"
-  exit 0
+  exitscript=1
+fi
+
+if [ ! -z $exitscript ] && [ $exitscript == 1 ];then
+  usage
 fi
 
 PKG_NAMES="" # list of pretty names to show user
 PKG_LIST="" # list of package names to show apt
 
-# ensure systemd-nspawn is installed
-REQ_PKG=systemd-container
-REQ_NAME=Systemd-nspawn
+pkginstall() {
 PKG_OK=$(dpkg-query -W --showformat='${Status}\n' "$REQ_PKG"|grep "install ok installed")
 if [ "" == "$PKG_OK" ]; then
   PKG_NAMES="${PKG_NAMES}, ${REQ_NAME}" # add user-friendly package name to list
   PKG_LIST="${PKG_LIST} ${REQ_PKG}" # add apt-friendly package name to list
 fi
+}
+
+# ensure systemd-nspawn is installed
+REQ_PKG=systemd-container
+REQ_NAME=Systemd-nspawn
+pkginstall
 
 # ensure xephyr is installed
 REQ_PKG=xserver-xephyr
 REQ_NAME=Xephyr
-PKG_OK=$(dpkg-query -W --showformat='${Status}\n' "$REQ_PKG"|grep "install ok installed")
-if [ "" == "$PKG_OK" ]; then
-  PKG_NAMES="${PKG_NAMES}, ${REQ_NAME}" # add user-friendly package name to list
-  PKG_LIST="${PKG_LIST} ${REQ_PKG}" # add apt-friendly package name to list
-fi
+pkginstall
 
 # ensure expect is installed
 REQ_PKG=expect
 REQ_NAME=Expect
-PKG_OK=$(dpkg-query -W --showformat='${Status}\n' "$REQ_PKG"|grep "install ok installed")
-if [ "" == "$PKG_OK" ]; then
-  PKG_NAMES="${PKG_NAMES}, ${REQ_NAME}" # add user-friendly package name to list
-  PKG_LIST="${PKG_LIST} ${REQ_PKG}" # add apt-friendly package name to list
-fi
+pkginstall
 
 # delete first comma. From ", Systemd-nspawn, Xephyr and Expect" to "Systemd-nspawn, Xephyr and Expect"
 PKG_NAMES="$(sed 's/, //' <<< $PKG_NAMES)"
@@ -71,81 +110,135 @@ PKG_LIST="$(sed 's/ //' <<< $PKG_LIST)"
 
 if [[ ! -z "$PKG_LIST" ]]; then
   if [ "$(wc -w <<< "$PKG_NAMES")" -gt 1 ]; then # if only one package, change "need" to "needs".
-    echo -e "${PKG_NAMES} need to be installed for vdesktop to work. Proceed? [Y/n]" | fold -s
+    echo -n "${PKG_NAMES} need"
   else
-    echo -e "${PKG_NAMES} needs to be installed for vdesktop to work. Proceed? [Y/n]" | fold -s
+    echo -n "${PKG_NAMES} needs"
   fi
+  echo " to be installed for vdesktop to work. Proceed? [Y/n]"
   read yesno
   if [[ "$yesno" == "n" ]]; then
-    echo -e "\e[91mGoodbye!\e[39m"
-    exit 0
+    error "Goodbye!"
   else
     # PKG_LIST must not be in quotes so apt sees them as seperate packages
+    apt update
     apt --force-yes --yes install $PKG_LIST || exit 1
   fi
 fi
 
-function cleanup {
-  echo ""
-  
-  echo -en "Cleaning up..."
-  printf '\e]12;#AAAAAA\a' # change cursor color back to lxterminal default
-  
+umountmods() {
   # unmount modifications to the guest
-  umount "${mntpnt}/etc/shadow" &>/dev/null
+  umount "${mntpnt}/etc/profile" &>/dev/null
   umount "${mntpnt}/var/lib/dbus/machine-id" &>/dev/null
   umount "${mntpnt}/etc/machine-id" &>/dev/null
-  umount "${mntpnt}/etc/profile" &>/dev/null
+  
+  #unmount rootmount modifications to the guest
+  PREIFS="$IFS"
+  IFS=$'\n'
+  for file in $mountfiles
+  do
+    umount "${mntpnt}/${file}"
+    rm "${mntpnt}/${file}"
+    if [ -f "${mntpnt}/${file}" ];then
+      echo -e "\e[91mFailed to unmount ${mntpnt}/${file}!\e[39m"
+    else
+      echo -e "\e[2mUnmounted ${mntpnt}/${file}\e[0m"
+    fi
+  done
+  #IFS is newline
+  #now remove all folders that were created for the files
+  madedirs="$(echo "$madedirs" | tac)" #reverse order to remove child directories first
+  for dir in $madedirs
+  do
+    rm -r "$dir" && echo -e "\e[2mRemoved $dir\e[0m"
+  done
+  
+  IFS="$PREIFS"
+}
+
+cleanup() {
+  #change background color back to black
+  printf %b '\e]11;#000000\a'
+  
+  echo -e "\e[97mHold on...\e[0m"
+  
+  sync
+  umountmods
+  echo -e "\e[97mCleaning up...\e[0m"
+  
+  kill $virglpid &>/dev/null
+  rm /tmp/.virgl_test
   
   # Sometimes Xephyr does not close automatically after container is terminated.
   killall Xephyr &>/dev/null
   
-  umount -fl "${mntpnt}/boot" &>/dev/null
-  umount -fl "$mntpnt" &>/dev/null
-  losetup -d "$LOOP" &>/dev/null
+  sync
+  umount -fl "${mntpnt}/boot"
+  sync
+  umount -fl "$mntpnt"
+  sync
+  if [ -z "$LOOP" ];then
+    losetup -d "$LOOP"
+    sync
+    
+    sleep 1
+    if [ ! -z "$(lsblk -p | grep "$LOOP")" ];then
+      echo -e "\e[91mFailed to remove $LOOP device!\e[39m"
+    fi
+  fi
+  
+  echo -e "\e[97mAlmost done...\e[0m"
   
   rm "${DIRECTORY}/machine-id" &>/dev/null
   machinectl poweroff vdesktop &>/dev/null
-  echo -e " Done"
+  
+  #kill all subprocesses on exit
+  kill $(jobs -p) &>/dev/null
+  
+  echo -e "\e[92mDone!\n\e[0m"
+  
   exit 0
 }
 
+#run cleanup on exit
 trap cleanup EXIT
+trap cleanup SIGINT
+trap cleanup SIGTERM
 
-#read config file and remove lines containing '#'
-conf="$(cat "${DIRECTORY}/config" | grep -v '#')"
+#All config options
+bootmode="${2-gui}"
+unmountonexit="${UMOUNT_ON_EXIT-yes}"
+username="${VDESKTOP_USER-pi}"
+password="${VDESKTOP_PASS-raspberry}"
+mntpnt="${VDESKTOP_MOUNTPOINT-/media/pi/vdesktop}" # if .img file or block device, this is default mount point
+enablerootmount="${VDESKTOP_ENABLE_ROOT_MOUNT-yes}"
 
-if [ -z "$conf" ];then
-  echo "config file missing!"
-  exit 1
+#enable virgl default setting depends on gui mode
+if [ "$bootmode" == "gui" ];then
+  enablevirgl="${VDESKTOP_ENABLE_VIRGL-yes}"
+else
+  enablevirgl="${VDESKTOP_ENABLE_VIRGL-no}"
 fi
 
-unmountonexit="$(echo "$conf" | sed -n 1p)"
-username="$(echo "$conf" | sed -n 2p)"
-password="$(echo "$conf" | sed -n 3p)"
-mntpnt="$(echo "$conf" | sed -n 4p)" # if .img file or block device, this is default mount point
-
-echo "Unmount on exit: $unmountonexit
+echo "Current config:
+Bootmode: $bootmode
+Unmount on machine exit: $unmountonexit
 User: $username
 Pass: $password
-Mountpoint: $mntpnt"
+Mountpoint: $mntpnt
+Enable rootmount: $enablerootmount
+Enable virgl: $enablevirgl"
 
 #ensure mountpoint exists
 mkdir -p "${mntpnt}" &>/dev/null
 umount -fl "${mntpnt}" &>/dev/null
-
-if [ -z "$2" ];then
-  bootmode='gui'
-else
-  bootmode="$2"
-fi
 
 # if user accidentally shutdown the host while guest was running, systemd masks "-.mount" by default. 
 # This ensures -.mount is not masked, though it usually takes a reboot to see any effect.
 systemctl unmask  -- -.mount 
 
 #message from botspot
-echo -e "$(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop-message/master/message-text)"
+echo -e "$(wget -qO- https://raw.githubusercontent.com/Botspot/vdesktop-message/master/message-text)" &
+echo "after botspot message"
 
 # IMG FILE
 if [[ "$1" == *".img" ]] && [ -f "$1" ]; then
@@ -154,7 +247,7 @@ if [[ "$1" == *".img" ]] && [ -f "$1" ]; then
   echo -e "Here"\'"s the loop device for it: $LOOP"
   mount -o rw "${LOOP}p2" "${mntpnt}"
   mount -o rw "${LOOP}p1" "${mntpnt}/boot"
-
+  
 # BLOCK DEVICE
 elif [ -b "$1" ]; then
   echo -e "OK, you specified a /dev location or block device" | fold -s
@@ -165,7 +258,7 @@ elif [ -b "$1" ]; then
     # partition number not specified
     # check if partition 2 exists
     if [ -b "${1}2" ]; then 
-      echo -e "Partiton 2 exists. Booting..."
+      echo -e "Partiton 2 exists."
       partnum=2
 
       # try partition 1
@@ -174,26 +267,28 @@ elif [ -b "$1" ]; then
       partnum=1
     else
       # neither 1 nor 2 exist
-      echo -e "\e[91mCould not detect any partitions!\e[39m"
-      exit 1
+      error "Could not detect any partitions!"
     fi
   fi
-    rootdev=$(echo -e "$(findmnt / -fnr)" | awk '{print $2}') # Which block device is mounted to  filesystem root
-
-    # if guest uuid is equal to filesystem roots uuid
-    if [[ "$(echo -e "$(udevadm info -q all -n $1${partnum} | grep 'by-uuid')" | awk '{print $2}'| head -n 1)" == "$(echo -e "$(udevadm info -q all -n $rootdev | grep 'by-uuid')" | awk '{print $2}'| head -n 1)" ]]; then
-      echo -e "The device you are trying to boot from and your microSD have the same UUID."
-      echo -e "Vdesktop can fix the problem by changing the UUID. Proceed? [Y/n]"
-      read answer 
-      if [ "$answer" == "n" ]; then
-        echo -e "\e[91mUUID not changed. Exiting.\e[39m"
-        exit 0
-      else
-        echo -e "Alright, changing the UUID"
-        e2fsck -pf "$1${partnum}"
-        tune2fs "$1${partnum}" -U random
-      fi
+  rootdev=$(echo -e "$(findmnt / -fnr)" | awk '{print $2}') # Which block device is mounted to  filesystem root
+  
+  # if guest uuid is equal to filesystem roots uuid
+  #if [[ "$(echo -e "$(udevadm info -q all -n $1${partnum} | grep 'by-uuid')" | awk '{print $2}'| head -n 1)" == "$(echo -e "$(udevadm info -q all -n $rootdev | grep 'by-uuid')" | awk '{print $2}'| head -n 1)" ]]; then
+  if false;then
+    #nothing in this if statement will ever occur.
+    #Leaving the code here so in case anyone has an issue without it, it's easy to undo.
+    echo -e "The device you are trying to boot from and your microSD have the same UUID."
+    echo -e "Vdesktop can fix the problem by changing the UUID. Proceed? [Y/n]"
+    read answer 
+    if [ "$answer" == "n" ]; then
+      echo -e "\e[91mUUID not changed. Exiting.\e[39m"
+      exit 0
+    else
+      echo -e "Alright, changing the UUID"
+      e2fsck -pf "$1${partnum}"
+      tune2fs "$1${partnum}" -U random
     fi
+  fi
   # finally mount the block device
   umount -l "$1${partnum}" &>/dev/null
   mount "$1${partnum}" "${mntpnt}" -o suid
@@ -202,57 +297,202 @@ elif [ -b "$1" ]; then
     mount "${1}1" "${mntpnt}/boot" -o suid
     echo -e "mounting boot as well"
   fi
-
+  
 # PREVENT BOOTING ROOT
 elif [ "$1" == "/" ]; then
-  echo -e "\e[91mYou cannot boot from Filesystem Root.\e[39m"
-  exit 1
-
+  error "You cannot boot from Filesystem Root."
+  
 # DIRECTORY
 elif [ -d "$1" ]; then
   echo -e "OK, looks like you specified a directory"
   # mount the specified directory to default location
   mount --bind "$1" "${mntpnt}"
+  
 # NOT_FOUND
 else
   echo -e "\e[91mNo such file or directory. Check spelling and try again.\e[39m"
-  if [[ "$1" == "/dev/"* ]]; then
-    lsblk -do PATH,MODEL,SIZE
-  fi
-  exit 1
+  usage
 fi
 
-if [ $mntpnt == "*/" ]; then # ensure there is no trailing slash
+# ensure there is no trailing slash
+if [ $mntpnt == "*/" ]; then
   mntpnt="${mntpnt: :-1}"
 fi
 
-mount -n -o remount,suid,rw "$mntpnt" # remount to allow root access
+# remount to allow root access. Not necessary in some situations, but it doesn't hurt
+mount -n -o remount,suid,rw "$mntpnt"
 
-if diff "${mntpnt}/etc/machine-id" "/etc/machine-id" > /dev/null || [ -z $(cat "${mntpnt}/etc/machine-id" | head -n1) ]
-then
-  echo -e "Temporarily changing Machine ID"
-  dbus-uuidgen --ensure="${DIRECTORY}/machine-id"
+mymachineid="$(cat "/etc/machine-id")"
+vdmachineid="$(cat "${mntpnt}/etc/machine-id")"
+
+if [ -z "$vdmachineid" ] || [ "$mymachineid" == "$vdmachineid" ];then
+  newmid="$(dbus-uuidgen)"
+  echo "Machine IDs equal. (${mymachineid}) Temporarily changing machine id to $newmid"
+  
+  echo "$newmid" > "${DIRECTORY}/machine-id"
   mount --bind "${DIRECTORY}/machine-id" "${mntpnt}/var/lib/dbus/machine-id"
   mount --bind "${DIRECTORY}/machine-id" "${mntpnt}/etc/machine-id"
 fi
 
-/bin/echo -e "Your cursor color will be \e[44mblue\e[49m until the container is terminated."
-echo -e -n "Booting in 5 seconds"
+dbus-uuidgen --ensure="${mntpnt}/etc/machine-id"
+
+echo ""
+
+#check if guest's /bin folder exists
+if [ ! -d "${mntpnt}/bin" ];then
+  error "img should be mounted, but ${DIRECTORY}/bin does not exist!"
+fi
+
+#determine if host is 64 bit or 32 bit userland
+if [ ! -z "$(file "$(readlink -f "/sbin/init")" | grep 64)" ];then
+  arch=64
+  nspawnpath="${DIRECTORY}/systemd-nspawn-64"
+elif [ ! -z "$(file "$(readlink -f "/sbin/init")" | grep 32)" ];then
+  arch=32
+  nspawnpath="${DIRECTORY}/systemd-nspawn-32"
+else
+  error "Failed to detect host OS CPU architecture! Something is very wrong."
+fi
+
+#exit if guest is 64 bit and host is 32 bit
+if [ ! -z "$(file "$(readlink -f "${mntpnt}/sbin/init")" | grep 64)" ] && [ "$(uname -m)" == 'armv7l' ];then
+  error "You cannot boot a 64 bit OS without enabling the 64 bit kernel.
+To enable the 64 bit kernel, add 'arm_64bit=1' to /boot/config.txt and then reboot."
+fi
+
+#mount rootmount
+if [ "$enablerootmount" == 'yes' ];then
+  cd "${DIRECTORY}/rootmount"
+  mountfiles="$(find . -type f | cut -c 3- )"
+  cd $HOME
+  #echo "$mountfiles"
+  PREIFS="$IFS"
+  IFS=$'\n'
+  for file in $mountfiles
+  do
+    #check how many containing folders need to be created
+    curdir="$(dirname "${mntpnt}/${file}")"
+    makedirs=''
+    #run until a parent folder exists that is found
+    while [ ! -d "$curdir" ];do
+      #if current parent dir does not exist, then add to list of dirs to create
+      echo "Current dir is $curdir"
+      makedirs="${curdir}
+${makedirs}"
+      curdir="$(dirname "$curdir")"
+    done
+    
+    #now make those directories, in opposite order
+    PREIFS="$IFS"
+    IFS=$'\n'
+    for dir in $makedirs
+    do
+      mkdir "$dir"
+      echo "Made $dir"
+    done
+    IFS="$PREIFS"
+    
+    madedirs="${madedirs}
+${makedirs}"
+    #remove first and last line
+    #madedirs="$(echo "$madedirs" | head -n -1 | head -n 1)"
+    
+    #create empty file
+    echo '' > "${mntpnt}/${file}"
+    #mount the real file
+    mount --bind -r "${DIRECTORY}/rootmount/${file}" "${mntpnt}/${file}"
+    echo -e "\e[2mMounted ${mntpnt}/${file}\e[0m"
+  done
+  IFS="$PREIFS"
+  
+  
+  #remove empty lines
+  madedirs="$(echo "$madedirs" | sed -r '/^\s*$/d')"
+  if [ ! -z "$madedirs" ];then
+    echo -e "These directories were created to mount files:\n${madedirs}END"
+  fi
+fi
+
+#this code is not executed.
+if false;then
+  #mount every file in /dev
+  PREIFS="$IFS"
+  IFS=$'\n'
+  for file in $(find /dev/* | grep -v ':\|/dev/pts\|/dev/log\|/dev/initctl\|/dev/console\|/dev/ptmx\|/dev/pts\|/dev/pts/ptmx\|/dev/stderr\|/dev/stdout\|/dev/stdin\|/dev/fd\|/dev/tty\|/dev/urandom\|/dev/random\|/dev/full\|/dev/zero\|/dev/char\|/dev/char/5:0\|/dev/char/1:9\|/dev/char/1:8\|/dev/char/1:7\|/dev/char/1:5\|/dev/char/1:3\|/dev/null\|/dev/net\|/dev/mqueue\|/dev/shm' )
+  do
+    nspawnflags="${nspawnflags} --bind=${file}"
+    echo "$file"
+  done
+  IFS="$PREIFS"
+fi
+
+nspawnflags="${nspawnflags}"
+echo "$nspawnflags"
 
 # terminate any previous instances of the machine in case it did not exit cleanly
 machinectl terminate vdesktop &>/dev/null
 machinectl poweroff vdesktop &>/dev/null
 
-sleep 1
-echo -n '.'
-sleep 1
-echo -n '.'
-sleep 1
-echo -n '.'
-sleep 1
-echo -n '.'
-sleep 1
-echo '.'
+if [ "$enablevirgl" == 'yes' ];then
+  if [ ! -f /usr/local/bin/virgl_test_server ];then
+    echo 'Virgilrenderer server not found, but it'\''s enabled in the config file.'
+    sleep 1
+    echo "Compiling virglrenderer in 10 seconds. To cancel, press Ctrl+C within before then"
+    for i in {1..10}; do
+      echo -n '.' #display a dot for each second
+      sleep 1
+    done
+    echo ''
+    echo "Compiling virglrenderer now."
+    wget http://ftp.br.debian.org/debian/pool/main/libe/libepoxy/libepoxy0_1.5.4-1_armhf.deb || error "Failed to download libepoxy0_1.5.4-1_armhf.deb!"
+    wget http://ftp.br.debian.org/debian/pool/main/libe/libepoxy/libepoxy-dev_1.5.4-1_armhf.deb || error "Failed to download libepoxy-dev_1.5.4-1_armhf.deb!"
+    sudo apt-get install --fix-broken -y ~/libepoxy-dev_1.5.4-1_armhf.deb ~/libepoxy0_1.5.4-1_armhf.deb || error "Failed to install local dependencies!"
+    sudo apt install -y meson libdrm-dev cmake libgbm-dev || error "Failed to install dependencies for virglrenderer!"
+    git clone https://gitlab.freedesktop.org/virgl/virglrenderer.git || error "Failed to clone virglrenderer repository!"
+    cd virglrenderer || error "Failed to enter virglrenderer folder!"
+    meson --prefix=/usr/local -Dbuildtype=release build || error "Failed to build!"
+    cd build
+    ninja install || error "Failed to compile and install!"
+    cd $HOME
+    ldconfig
+  fi
+  echo "Launching virgl test server..."
+  sudo -u pi bash -c "/usr/local/bin/virgl_test_server --use-gles" &
+  virglpid=$!
+  echo "The virgl pid is $virglpid"
+  nspawnflags="${nspawnflags} --bind=/tmp/.virgl_test"
+fi
+
+#5 second delay
+echo "Booting in 5 seconds"
+
+#three patterns - chosen randomly
+random=$(( RANDOM % 3 ))
+if [ $random == 1 ];then
+  chars="▏▎▍▌▋▊▉██▉▊▋▌▍▎▏▏▎▍▌▋▊▉██▉▊▋▌▍▎▏"
+elif [ $random == 2 ];then
+  chars="▁▂▃▄▅▆▇██▇▆▅▄▃▂▁▁▂▃▄▅▆▇██▇▆▅▄▃▂▁"
+else
+  chars="▖▗▘▙▚▛▜▝▞▟▄▀▌█▐ ▐█▌▀▄▟▞▝▜▛▚▙▘▗▖"
+fi
+
+#hide terminal cursor
+tput civis
+
+trap "tput cnorm" EXIT
+
+for i in {1..5}; do
+  for n in {16..1}; do
+    #echo -ne "\r$i$full$chars"
+    b=$((32-n))
+    echo -ne "\r$i${chars:n:16}"
+    sleep 0.06
+  done
+done
+echo -e '\r                  '
+tput cnorm
+
+rm "${mntpnt}/xready" &>/dev/null
 
 if [ "$bootmode" == "gui" ]; then
   #this starts the desktop session inside the guest
@@ -264,40 +504,41 @@ if [ "$bootmode" == "gui" ]; then
   #get screen dimensions to calculate xephyr size
   screen_width="$(xdpyinfo | grep 'dimensions:' | tr 'x' '\n' | tr ' ' '\n' | sed -n 7p)"
   screen_height="$(xdpyinfo | grep 'dimensions:' | tr 'x' '\n' | tr ' ' '\n' | sed -n 8p)"
+  "${DIRECTORY}/clipboardsync" &
   
-  eval '
-    while [ "$INITIAL_X_INSTANCES" -eq "$(pgrep lxsession | wc -l)" ]; do
-      sleep 0.01
-    done
-    "${DIRECTORY}/clipboardsync" &
-    Xephyr -no-host-grab -title Vdesktop -ac -screen ${screen_width}x$((screen_height-73)) -br -glamor -resizeable :1 2>/dev/null' &
+  #kill pulseaudio in host for sound to work from guest
+  systemctl --user stop pulseaudio.socket &>/dev/null
+  
+  (while [ ! -f "${mntpnt}/xready" ];do
+    sleep 1
+  done
+    Xephyr -no-host-grab -title Vdesktop -ac -screen ${screen_width}x$((screen_height-73)) -br -glamor -resizeable -dpi 96 :1 2>/dev/null &
+  ) &
 fi
 
+#change background color while in guest
+printf %b '\e]11;#000040\a'
+
 if [ "$bootmode" == "gui" ] || [ "$bootmode" == "cli-login" ]; then
-  echo "Booting in auto-login mode."
-  #change cursor color while in guest
-  printf '\e]12;#0000AA\a'
+  echo -e "Booting in auto-login mode.\n\n"
   # boot the guest
-  echo -e ""
-  echo -e ""
   /usr/bin/expect -c "set timeout -1
-  spawn ${DIRECTORY}/nspawn $mntpnt
+  spawn "\""${DIRECTORY}/nspawn"\"" $arch "\""$mntpnt"\"" "\""$nspawnflags"\""
   expect -re .*login:
   send -- ${username}\r
   expect -re .*Password:
   send -- ${password}\r
   interact ''
-  expect eof"
+  expect eof
+  "
 else
-  #change cursor color while in guest
-  printf '\e]12;#0000AA\a' 
-  # boot the guest
   echo -e "\n\n"
-  "${DIRECTORY}/nspawn" "$mntpnt"
+  # boot the guest
+  "${DIRECTORY}/nspawn" $arch "$mntpnt" "$nspawnflags"
 fi
 
-#change cursor color back to lxterminal default
-printf '\e]12;#AAAAAA\a'
+#change background color back to black
+printf %b '\e]11;#000000\a'
 
 echo -e ""
 killall clipboardsync &>/dev/null
@@ -307,3 +548,5 @@ if [ "$unmountonexit" != 'yes' ];then
   echo -e "The machine has exited, but you can still access its filesystem. Press Ctrl+C to unmount ${mntpnt}"
   sleep infinity
 fi
+
+cleanup
