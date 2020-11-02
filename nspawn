@@ -1,6 +1,8 @@
 #!/bin/bash
 
-sudo systemd-nspawn -bD $1 --volatile=no \
+DIRECTORY="$(readlink -f $(dirname "$0"))"
+
+sudo "${DIRECTORY}/systemd-nspawn-${1}" -bD "$2" --volatile=no \
   --bind=/dev/shm \
   --property="DeviceAllow=/dev/shm rwm" \
   \
@@ -20,6 +22,8 @@ sudo systemd-nspawn -bD $1 --volatile=no \
   --bind=/sys/firmware \
   --bind=/dev/v4l \
   --bind=/dev/vchiq \
+  --bind=/dev/random \
+  --bind=/dev/urandom \
   --property="DeviceAllow=/dev/vchiq rwm" \
   \
   --property="DeviceAllow=/dev/null rwm" \
@@ -32,4 +36,9 @@ sudo systemd-nspawn -bD $1 --volatile=no \
   --property="DeviceAllow=char-usb_device rwm" \
   --property="DeviceAllow=char-input rwm" \
   --property="DeviceAllow=char-alsa rwm" \
-  --property="DeviceAllow=char-drm rwm"
+  --property="DeviceAllow=char-drm rwm" \
+  --bind=/tmp/.X11-unix \
+  \
+  --bind=/dev/loop-control \
+  --property="DeviceAllow=/dev/loop-control rwm" \
+  $3
