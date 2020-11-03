@@ -37,7 +37,6 @@ sudo "${DIRECTORY}/systemd-nspawn-${1}" -bD "$2" --volatile=no \
   --property="DeviceAllow=char-input rwm" \
   --property="DeviceAllow=char-alsa rwm" \
   --property="DeviceAllow=char-drm rwm" \
-  --bind=/tmp/.X11-unix \
   \
   --bind=/dev/loop-control \
   --property="DeviceAllow=/dev/loop-control rwm" \
