@@ -166,7 +166,7 @@ cleanup() {
   echo -e "\e[97mCleaning up...\e[0m"
   
   kill $virglpid &>/dev/null
-  rm /tmp/.virgl_test
+  rm /tmp/.virgl_test &>/dev/null
   
   # Sometimes Xephyr does not close automatically after container is terminated.
   killall Xephyr &>/dev/null
@@ -176,7 +176,7 @@ cleanup() {
   sync
   umount -fl "$mntpnt"
   sync
-  if [ -z "$LOOP" ];then
+  if [ ! -z "$LOOP" ];then
     losetup -d "$LOOP"
     sync
     
@@ -361,7 +361,7 @@ else
 fi
 
 #exit if guest is 64 bit and host is 32 bit
-if [ ! -z "$(file "$(readlink -f "${mntpnt}/sbin/init")" | grep 64)" ] && [ "$(uname -m)" == 'armv7l' ];then
+if [ ! -z "$(file "${mntpnt}$(readlink -f "${mntpnt}/sbin/init")" | grep 64)" ] && [ "$(uname -m)" == 'armv7l' ];then
   error "You cannot boot a 64 bit OS without enabling the 64 bit kernel.
 To enable the 64 bit kernel, add 'arm_64bit=1' to /boot/config.txt and then reboot."
 fi
@@ -479,7 +479,7 @@ if [ $random == 1 ];then
 elif [ $random == 2 ];then
   chars="▁▂▃▄▅▆▇██▇▆▅▄▃▂▁▁▂▃▄▅▆▇██▇▆▅▄▃▂▁"
 else
-  chars="▖▗▘▙▚▛▜▝▞▟▄▀▌█▐ ▐█▌▀▄▟▞▝▜▛▚▙▘▗▖"
+  chars="▖▗▘▙▚▛▜▝▞▟▄▀▌█▐ ▖▗▘▙▚▛▜▝▞▟▄▀▌█▐ "
 fi
 
 #hide terminal cursor
