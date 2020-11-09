@@ -2,7 +2,11 @@
 
 DIRECTORY="$(readlink -f $(dirname "$0"))"
 
-sudo "${DIRECTORY}/systemd-nspawn-${1}" -bD "$2" --volatile=no \
+#variable 1 is path to systemd-nspawn
+#variable 2 is filesystem to boot
+#variable 3 is additional nspawn flags.
+
+sudo "$1" -bD "$2" --volatile=no \
   --bind=/dev/shm \
   --property="DeviceAllow=/dev/shm rwm" \
   \

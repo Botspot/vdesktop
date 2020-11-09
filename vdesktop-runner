@@ -1,0 +1,19 @@
+#!/bin/bash
+
+DIRECTORY="$(dirname "$(readlink -f "$0")")"
+#echo "Directory: $DIRECTORY"
+
+function error {
+  echo -e "\e[91m$1\e[39m"
+  exit 1
+}
+
+if [ $(id -u) -ne 0 ]; then
+  #non-root user
+  sudo -E "${DIRECTORY}/vdesktop" $@
+else
+  #already running as root user
+  "${DIRECTORY}/vdesktop" $@
+fi
+
+

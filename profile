@@ -40,8 +40,12 @@ fi
 if [ -S /tmp/.virgl_test ];then
   export LIBGL_ALWAYS_SOFTWARE=1
   export GALLIUM_DRIVER=virpipe
+  #export GALLIUM_DRIVER=llvmpipe
   export MESA_EXTENSION_OVERRIDE=-GL_MESA_framebuffer_flip_y
 fi
+
+systemctl --user stop pulseaudio.socket &>/dev/null &
+
 #only run anything if display var is empty. Allows terminals to open like normal.
 if [ -z $DISPLAY ];then
   export DISPLAY=:1
@@ -69,23 +73,25 @@ if [ -z $DISPLAY ];then
     #os is not twisteros so try lxsession instead
     eval "for n in {1..5}; do
       #if startlxde fails the first time, try again up to 5 times
-      (/usr/bin/startlxde-pi &>/dev/null 2>&1) &>/dev/null &
+      (/usr/bin/startlxde-pi &>/dev/null 2>&1) &>/dev/null
       sleep 2
     done" &>/dev/null &
     
     sleep 5
-    eval "
-      killall pcmanfm &>/dev/null
+    eval "for n in {1..2}; do
+      killall pcmanfm &>/dev/null &
       sleep 1
       pcmanfm --desktop --profile=LXDE-pi &>/dev/null &
       sleep 2
-      openbox --restart &>/dev/null
+      openbox --restart &>/dev/null &
       sleep 2
-      lxpanelctl restart &>/dev/null
+      lxpanelctl restart &>/dev/null &
       sleep 1
-    " &>/dev/null &
+    done
+    sleep 5
+    lxpanelctl restart &>/dev/null &
+    sleep infinity" &>/dev/null &
   fi
 fi
 export DISPLAY=:1
-systemctl --user stop pulseaudio.socket &>/dev/null &
 
