@@ -208,7 +208,7 @@ cleanup() {
 
 #create vdesktop convenience launcher
 if [ ! -e /usr/local/bin/vdesktop ];then
-  ln -s /home/pi/vdesktop/vdesktop-runner /usr/local/bin/vdesktop
+  ln -s "${DIRECTORY}/vdesktop-runner" /usr/local/bin/vdesktop
   chmod u+x /usr/local/bin/vdesktop
   echo "Created a vdesktop script in /usr/bin. You can now run the command "\'"vdesktop"\'" directly, instead of $0! And you don"\'"t have to use sudo!"
   echo "Waiting 10 seconds before proceeding."
