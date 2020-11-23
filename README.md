@@ -19,7 +19,7 @@ git clone https://github.com/Botspot/vdesktop
 ```
 sudo ~/vdesktop/vdesktop
 ```
-
+After running once, vdesktop will create a file in /usr/bin. So from now on you can simply run `vdesktop`. (with no sudo)  
 ## Usage:
 Boot a .img file: `vdesktop /home/pi/2020-08-20-raspios-buster-armhf.img`  
 Boot a usb drive: `vdesktop /dev/sda`  
@@ -142,12 +142,12 @@ If the graphics look bad, you will have to restart certain services. From within
     lxpanelctl restart
 
 #### What if you want everything to work automatically, without requiring any user interaction?
-This is *really hard*, and too long to post here. After all, it takes the entire vdesktop script to do this.
+This is too long to post here. After all, it takes the entire vdesktop script to do this.
 Here's what it does:
 
  - `expect` logs in automatically to the console. It types in `pi` and `raspberry` so you don't have to.
  - After logging in, `/etc/profile` is run. Vdesktop mounts a custom version of `/etc/profile` to autostart an X session from the inside. It creates a signal file: `/xready`, to let vdesktop know the gui is ready to be loaded.
- - `Xephyr` opens when that that file is created, (this is the VNC-style window), to allow the container's x session to connect to it.
+ - `Xephyr` launches when that that file is created, (this is the VNC-style window), to allow the container's X session to connect to it.
  - Once Xephyr opens and the desktop loads, `clipboardsync` runs, to let you copy & paste text back and forth.
  - When you exit the container, and all of the above has to be safely dismantled and shutdown. Complex? You bet.
  - On top of all that, `vdesktop` ensures dependencies are installed, detects filesystem errors in the .img and asks permission to repair them, and performs a host of little bug fixes to make it Just Work™.
