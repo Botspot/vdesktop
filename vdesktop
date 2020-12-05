@@ -17,7 +17,7 @@ if [ ! -z "$CURRENT_VER" ] && [ ! -z "$LOCAL_VER" ] && [ "$CURRENT_VER" -gt "$LO
       gio trash "${DIRECTORY}.new"
       echo "Moved ${DIRECTORY}.new to Trash. Just letting you know."
     fi
-    sudo -u pi git clone https://github.com/Botspot/vdesktop "${DIRECTORY}.new"
+    sudo -u $USER git clone https://github.com/Botspot/vdesktop "${DIRECTORY}.new"
     echo -e ""
     NEW_VER="$(head -n 1 "${DIRECTORY}.new/version")"
     if [ "$NEW_VER" -gt "$LOCAL_VER" ];then
@@ -25,8 +25,8 @@ if [ ! -z "$CURRENT_VER" ] && [ ! -z "$LOCAL_VER" ] && [ "$CURRENT_VER" -gt "$LO
       gio trash "${DIRECTORY}.old"
       mv -f "${DIRECTORY}/" "${DIRECTORY}.old"
       mv -f "${DIRECTORY}.new/" "${DIRECTORY}"
-      chgrp -R pi "${DIRECTORY}"
-      chown -R pi "${DIRECTORY}"
+      chgrp -R $USER "${DIRECTORY}"
+      chown -R $USER "${DIRECTORY}"
       if [ $NEW_VER -eq "$(head -n 1 "${DIRECTORY}/version")" ];then
         echo -e "Copied to ${DIRECTORY} successfully."
         exit 0
@@ -496,7 +496,7 @@ if [ "$ENABLE_VIRGL" == 'yes' ];then
     ldconfig
   fi
   echo "Launching virgl test server..."
-  sudo -u pi bash -c "GALLIUM_DRIVER=llvmpipe GALLIVM_PERF=nopt,no_filter_hacks VTEST_USE_EGL_SURFACELESS=1 VTEST_USE_GLES=1 virgl_test_server --use-gles" &
+  sudo -u $USER bash -c "GALLIUM_DRIVER=llvmpipe GALLIVM_PERF=nopt,no_filter_hacks VTEST_USE_EGL_SURFACELESS=1 VTEST_USE_GLES=1 virgl_test_server --use-gles" &
   virglpid=$!
   echo "The virgl pid is $virglpid"
   NSPAWN_FLAGS="${NSPAWN_FLAGS} --bind=/tmp/.virgl_test"
