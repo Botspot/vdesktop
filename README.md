@@ -9,6 +9,7 @@ This script is excellent in these situations:
  - Running something you might want to undo (such as compiling) and don't want your main OS modified.
  - "Switch" OSes without ever shutting down or swapping SD cards.
  - Running Raspbian Stretch on a Pi 4.
+Note: Vdesktop has been [reported unstable](https://github.com/Botspot/vdesktop/issues/21) running on Ubuntu.
 
 ## To download:
 ```
