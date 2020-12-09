@@ -6,13 +6,14 @@ DIRECTORY="$(readlink -f $(dirname "$0"))"
 #variable 2 is filesystem to boot
 #variable 3 is additional nspawn flags.
 
-sudo "$1" -bD "$2" --volatile=no \
+sudo "$1" -bD "$2" --volatile=no $3 \
   --bind=/dev/shm \
   --property="DeviceAllow=/dev/shm rwm" \
   \
   --bind=/dev/snd \
   --property="DeviceAllow=/dev/snd rwm" \
   \
+  --bind=/proc \
   --bind=/dev/input \
   --property="DeviceAllow=/dev/input rwm" \
   \
@@ -26,9 +27,11 @@ sudo "$1" -bD "$2" --volatile=no \
   --bind=/sys/firmware \
   --bind=/dev/v4l \
   --bind=/dev/vchiq \
+  --bind=/dev/vcio \
   --bind=/dev/random \
   --bind=/dev/urandom \
   --property="DeviceAllow=/dev/vchiq rwm" \
+  --property="DeviceAllow=/dev/vcio rwm" \
   \
   --property="DeviceAllow=/dev/null rwm" \
   --property="DeviceAllow=/dev/zero rwm" \
@@ -44,4 +47,4 @@ sudo "$1" -bD "$2" --volatile=no \
   \
   --bind=/dev/loop-control \
   --property="DeviceAllow=/dev/loop-control rwm" \
-  $3
+  
