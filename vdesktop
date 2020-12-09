@@ -363,11 +363,10 @@ vdmachineid="$(cat "${MOUNTPOINT}/etc/machine-id")"
 
 if [ -z "$vdmachineid" ] || [ "$mymachineid" == "$vdmachineid" ];then
   newmid="$(dbus-uuidgen)"
-  echo "Machine IDs equal. (${mymachineid}) Temporarily changing machine id to $newmid"
+  echo "Machine IDs equal. (${mymachineid}) Changing machine id to $newmid"
   
-  echo "$newmid" > "${DIRECTORY}/machine-id"
-  mount --bind "${DIRECTORY}/machine-id" "${MOUNTPOINT}/var/lib/dbus/machine-id"
-  mount --bind "${DIRECTORY}/machine-id" "${MOUNTPOINT}/etc/machine-id"
+  echo "$newmid" > "${MOUNTPOINT}/etc/machine-id"
+  echo "$newmid" > "${MOUNTPOINT}/var/lib/dbus/machine-id"
 fi
 
 echo ""
@@ -458,7 +457,7 @@ if false;then
   IFS=$'\n'
   for file in $(find /dev/* | grep -v ':\|/dev/pts\|/dev/log\|/dev/initctl\|/dev/console\|/dev/ptmx\|/dev/pts\|/dev/pts/ptmx\|/dev/stderr\|/dev/stdout\|/dev/stdin\|/dev/fd\|/dev/tty\|/dev/urandom\|/dev/random\|/dev/full\|/dev/zero\|/dev/char\|/dev/char/5:0\|/dev/char/1:9\|/dev/char/1:8\|/dev/char/1:7\|/dev/char/1:5\|/dev/char/1:3\|/dev/null\|/dev/net\|/dev/mqueue\|/dev/shm' )
   do
-    NSPAWN_FLAGS="${NSPAWN_FLAGS} --bind=${file}"
+    NSPAWN_FLAGS="${NSPAWN_FLAGS} --bind=${file} --property="\'"DeviceAllow=${file} rwm"\'""
     echo "$file"
   done
   IFS="$PREIFS"
@@ -483,9 +482,13 @@ if [ "$ENABLE_VIRGL" == 'yes' ];then
     done
     echo ''
     echo "Compiling virglrenderer now."
-    wget http://ftp.br.debian.org/debian/pool/main/libe/libepoxy/libepoxy0_1.5.4-1_armhf.deb || error "Failed to download libepoxy0_1.5.4-1_armhf.deb!"
-    wget http://ftp.br.debian.org/debian/pool/main/libe/libepoxy/libepoxy-dev_1.5.4-1_armhf.deb || error "Failed to download libepoxy-dev_1.5.4-1_armhf.deb!"
-    sudo apt-get install --fix-broken -y ~/libepoxy-dev_1.5.4-1_armhf.deb ~/libepoxy0_1.5.4-1_armhf.deb || error "Failed to install local dependencies!"
+    if [ "$arch" == 32 ];then
+      wget http://ftp.br.debian.org/debian/pool/main/libe/libepoxy/libepoxy0_1.5.4-1_armhf.deb || error "Failed to download libepoxy0_1.5.4-1_armhf.deb!"
+      wget http://ftp.br.debian.org/debian/pool/main/libe/libepoxy/libepoxy-dev_1.5.4-1_armhf.deb || error "Failed to download libepoxy-dev_1.5.4-1_armhf.deb!"
+      sudo apt-get install --allow-downgrades --fix-broken -y ~/libepoxy-dev_1.5.4-1_armhf.deb ~/libepoxy0_1.5.4-1_armhf.deb || error "Failed to install local dependencies!"
+    else
+      sudo apt install -y libepoxy0 libepoxy-dev
+    fi
     sudo apt install -y meson libdrm-dev cmake libgbm-dev || error "Failed to install dependencies for virglrenderer!"
     git clone https://gitlab.freedesktop.org/virgl/virglrenderer.git || error "Failed to clone virglrenderer repository!"
     cd virglrenderer || error "Failed to enter virglrenderer folder!"
@@ -496,7 +499,7 @@ if [ "$ENABLE_VIRGL" == 'yes' ];then
     ldconfig
   fi
   echo "Launching virgl test server..."
-  sudo -u $USER bash -c "GALLIUM_DRIVER=llvmpipe GALLIVM_PERF=nopt,no_filter_hacks VTEST_USE_EGL_SURFACELESS=1 VTEST_USE_GLES=1 virgl_test_server --use-gles" &
+  sudo -u $USER bash -c "virgl_test_server --use-gles" &
   virglpid=$!
   echo "The virgl pid is $virglpid"
   NSPAWN_FLAGS="${NSPAWN_FLAGS} --bind=/tmp/.virgl_test"
@@ -557,6 +560,11 @@ fi
 
 #change background color while in guest
 printf %b '\e]11;#000040\a'
+
+# kris
+# disable wait for network
+
+#NSPAWN_FLAGS="${NSPAWN_FLAGS} systemd.log_level=debug --inaccessible=/lib/systemd/system/systemd-networkd-wait-online.service --bind-ro=/etc/resolv.conf"
 
 if [ "$AUTO_LOGIN" == "yes" ]; then
   # boot the guest
