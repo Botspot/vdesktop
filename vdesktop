@@ -572,7 +572,7 @@ if [ "$AUTO_LOGIN" == "yes" ]; then
   spawn "\""${DIRECTORY}/nspawn"\"" "\""$nspawnpath"\"" "\""$MOUNTPOINT"\"" "\""$NSPAWN_FLAGS"\""
   expect -re .*login:
   send -- ${USERNAME}\r
-  expect -re .*Password:
+  expect -re .*:
   send -- ${PASSWORD}\r
   interact ''
   expect eof
