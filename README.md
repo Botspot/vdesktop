@@ -128,7 +128,7 @@ This is even harder. Launch Xephyr from a host's terminal, then connect to it fr
 
 From a terminal running on the host system:
 
-    Xehpyr :1
+    Xephyr :1
 
 A black window will appear. Assuming you've already ran the necessary `systemd-nspawn` command and logged in as user pi, to make the container/guest system connect to the Xephyr window, run this in the guest's console:
 
