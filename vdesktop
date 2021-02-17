@@ -483,8 +483,8 @@ if [ "$ENABLE_VIRGL" == 'yes' ];then
     echo ''
     echo "Compiling virglrenderer now."
     if [ "$arch" == 32 ];then
-      wget http://ftp.br.debian.org/debian/pool/main/libe/libepoxy/libepoxy0_1.5.4-1_armhf.deb || error "Failed to download libepoxy0_1.5.4-1_armhf.deb!"
-      wget http://ftp.br.debian.org/debian/pool/main/libe/libepoxy/libepoxy-dev_1.5.4-1_armhf.deb || error "Failed to download libepoxy-dev_1.5.4-1_armhf.deb!"
+      wget http://ports.ubuntu.com/pool/main/libe/libepoxy/libepoxy0_1.5.4-1_armhf.deb || error "Failed to download libepoxy0_1.5.4-1_armhf.deb!"
+      wget http://ports.ubuntu.com/pool/main/libe/libepoxy/libepoxy-dev_1.5.4-1_armhf.deb || error "Failed to download libepoxy-dev_1.5.4-1_armhf.deb!"
       sudo apt-get install --allow-downgrades --fix-broken -y ~/libepoxy-dev_1.5.4-1_armhf.deb ~/libepoxy0_1.5.4-1_armhf.deb || error "Failed to install local dependencies!"
     else
       sudo apt install -y libepoxy0 libepoxy-dev
