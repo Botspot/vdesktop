@@ -24,7 +24,7 @@ After running once, vdesktop will create a file in /usr/bin. So from now on you 
 ## Usage:
 Boot a .img file: `vdesktop /home/pi/2020-08-20-raspios-buster-armhf.img`  
 Boot a usb drive: `vdesktop /dev/sda`  
-Boot a directory: `vdesktop /home/pi/raspbian-buster/`  
+Boot a directory: `vdesktop /home/pi/RPiOS-buster/`  
 A second word specifies the boot mode: `cli`, or `gui`. If none 
 specified, **gui mode is assumed**.
 
