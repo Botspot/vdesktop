@@ -3,12 +3,12 @@
 See it in action:  
 ![animated screen recording](https://i.ibb.co/Y8gHjz8/vdesktop.gif)  
 This script is excellent in these situations:
- - Customizing a new Raspbian image: installing packages, configuring raspi-config, installing Chrome Extensions, changing wallpaper, etc.
- - Migrating to a clean install of Raspbian and want to compare the appearance of both OS'es at once.
+ - Customizing a new Raspberry Pi OS image: installing packages, configuring raspi-config, installing Chrome Extensions, changing wallpaper, etc.
+ - Migrating to a clean install of Raspberry Pi OS and want to compare the appearance of both OS'es at once.
  - Run a fresh version of an OS to make a video or to test software compatibility.
  - Running something you might want to undo (such as compiling) and don't want your main OS modified.
  - "Switch" OSes without ever shutting down or swapping SD cards.
- - Running Raspbian Stretch on a Pi 4.
+ - Running Raspberry Pi OS Buster on a Pi 4.
 Note: Vdesktop has been [reported unstable](https://github.com/Botspot/vdesktop/issues/21) running on Ubuntu.
 
 ## To download:
@@ -24,7 +24,7 @@ After running once, vdesktop will create a file in /usr/bin. So from now on you 
 ## Usage:
 Boot a .img file: `vdesktop /home/pi/2020-08-20-raspios-buster-armhf.img`  
 Boot a usb drive: `vdesktop /dev/sda`  
-Boot a directory: `vdesktop /home/pi/raspbian-stretch/`  
+Boot a directory: `vdesktop /home/pi/raspbian-buster/`  
 A second word specifies the boot mode: `cli`, or `gui`. If none 
 specified, **gui mode is assumed**.
 
@@ -172,7 +172,7 @@ Here's what it does:
 ## To do:
  - [X] Write up a more comprehensive set of instructions, and add come CLI flags.
  - [X] autologin to the guest, so the user doesn't have to do it manually.
- - [X] auto-detect default desktop session profile to correctly boot pi-top OS and Raspbian that doesn't have raspberrypi-ui-mods installed.
+ - [X] auto-detect default desktop session profile to correctly boot pi-top OS and Raspberry Pi OS that doesn't have raspberrypi-ui-mods installed.
  - [X] Sync **sound** between host and guest, while avoiding pulseaudio.
  - [X] Sync **clipboards** between host and guest.
  - [X] display text at guest's default size instead of autoscaling to Xephyr's aspect ratio.
