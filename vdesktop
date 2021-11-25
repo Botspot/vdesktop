@@ -373,7 +373,7 @@ echo ""
 
 #check if guest's /bin folder exists
 if [ ! -d "${MOUNTPOINT}/bin" ];then
-  error "img should be mounted, but ${DIRECTORY}/bin does not exist!"
+  error "img should be mounted, but ${MOUNTPOINT}/bin does not exist!"
 fi
 
 #determine if host is 64 bit or 32 bit userland
