@@ -107,7 +107,7 @@ Vdesktop uses a `systemd-nspawn` container to 'boot' its devices with. This is v
 [Systemd-nspawn](https://www.man7.org/linux/man-pages/man5/systemd.nspawn.5.html) is much faster than other methods because it doesn't use any emulation. Why would you need emulation anyway, when you want a Pi to run its own OS?  
 Try out systemd-nspawn yourself:
 ```
-sudo systemd-nsapwn -bD /media/pi/USB-DRIVE
+sudo systemd-nspawn -bD /media/pi/USB-DRIVE
 ```
 (Where /media/pi/USB-DRIVE is the path to an externally connected usb device with Raspberry Pi OS flashed to it.)  
 With that command, you'll see the SD card boot up. After manually logging in yourself, you can change settings, run updates, etc, *as long as it can be done in the command-line*.
