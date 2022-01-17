@@ -392,7 +392,7 @@ if [ "$VDESKTOP_LOCAL_BINARIES" == 'no' ];then
 fi
 
 #exit if guest is 64 bit and host is 32 bit
-if [ ! -z "$(file "${MOUNTPOINT}$(readlink -f "${MOUNTPOINT}/sbin/init")" | grep 64)" ] && [ "$(uname -m)" == 'armv7l' ];then
+if [ "$(od -An -t x1 -j 4 -N 1 "${MOUNTPOINT}$(readlink ${MOUNTPOINT}/sbin/init)")" = ' 02' ] && [ "$(uname -m)" == 'armv7l' ];then
   error "You cannot boot a 64 bit OS without enabling the 64 bit kernel.
 To enable the 64 bit kernel, add 'arm_64bit=1' to /boot/config.txt and then reboot."
 fi
