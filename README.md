@@ -20,6 +20,22 @@ git clone https://github.com/Botspot/vdesktop
 ```
 sudo ~/vdesktop/vdesktop
 ```
+
+## Supported operating systems:
+Vdesktop has been tested to successfully run:
+
+- TwisterOS
+- Kali Linux (armhf)
+- Raspberry Pi OS Buster or below (armhf or arm64)
+
+## Unsupported operating systems:
+Vdesktop does not appear to run:
+
+- Gentoo ARM - it can boot and reach a shell, but the desktop session doesn't work.
+- Ubuntu and Pop!_OS - boot procedure never finishes due to [this strange bug](https://github.com/systemd/systemd/issues/17686)
+- Other operating systems that don't share the same RPiOS kernel, like FydeOS, Android, Windows, etc.
+- Raspberry Pi OS Bullseye - the `mutter` window manager is not compatible with Xephyr and the desktop encounters various other strange errors.
+
 After running once, vdesktop will create a file in /usr/bin. So from now on you can simply run `vdesktop`. (with no sudo)  
 ## Usage:
 Boot a .img file: `vdesktop /home/pi/2020-08-20-raspios-buster-armhf.img`  
